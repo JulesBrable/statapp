@@ -1,19 +1,21 @@
 
-
 # ---------------------------------------------------------------------
 
-var_summary <- function(df, var, ...){
+var_summary <- function(df, var, nan = "none", ...){
   
   title <- glue::glue(
-    "<i>Statistical summary of <span style='color: darkred'>{var}</span>:</i>"
+    "<i>Statistical summary of
+    <span style='color: darkred'>{glue::glue_collapse(var,  sep = ', ')}</span>:</i>"
   )
   
   kableExtra::kbl(df %>%
-                    dplyr::select({{var}}) %>% 
+                    dplyr::select(any_of(var)) %>% 
+                    dplyr::filter_all(any_vars(. != nan)) %>% 
                     psych::describe(quant = c(.25,.75)) %>% 
                     dplyr::mutate(IQR = Q0.75 - Q0.25) %>% 
-                    dplyr::select(min, max, mean, median, sd, IQR) %>% 
-                    round(digits = 2),
+                    dplyr::select(min, max, mean, sd, IQR) %>% 
+                    round(digits = 2) %>% 
+                    dplyr::arrange(min),
                   caption = title,
                   booktabs = T,
                   linesep = "") %>% 
@@ -35,34 +37,48 @@ theme_formatted <- function(font = "Cambria"){
         size = 15,
         face = 'bold',
         hjust = 0.5,
-        vjust = 1.5)
+        vjust = 1.5),
+      plot.caption = element_text(hjust = 0)
     )
 }
 
 # -------------------------------------------------------------------------
 
-density_plot <- function(df, var, ...){
+create_caption <- function(df, var, nan){
   
-  title <- glue::glue("Density plot of <span style='color: darkred'>{var}</span>")
+  glue::glue("Number of NaNs: {df %>% filter(get(var) == nan | is.na(get(var))) %>% count()}.")
+}
+
+# -------------------------------------------------------------------------
+
+density_plot <- function(df, var, nan = "none", ...){
+  
+  title <- glue::glue("Density plot of {var}")
+  
+  caption <- df %>% create_caption(var = var, nan = nan)
   
   df %>% 
+    filter(get(var) != nan) %>% 
     ggplot2::ggplot(mapping = aes(x = get(var))) +
     ggplot2::geom_density(fill = "#69b3a2", color = "grey30", alpha = 0.7) +
-    ggplot2::labs(title = title, x = var) +
+    ggplot2::labs(title = title, x = var, caption = caption) +
     theme_formatted()
 }
 
 # -------------------------------------------------------------------------
 
-hist_plot <- function(df, var, ...){
+hist_plot <- function(df, var, nan = "none", ...){
   
-  title <- glue::glue("Histogram chart of <span style='color: darkred'>{var}</span>")
+  title <- glue::glue("Histogram chart of {var}")
+  
+  caption <- df %>% create_caption(var = var, nan = nan)
   
   df %>% 
+    filter(get(var) != nan) %>% 
     ggplot2::ggplot(mapping = aes(x = get(var))) +
     ggplot2::geom_histogram(fill = "#69b3a2",
                             color = "grey30", alpha = 0.7, stat="count") +
-    ggplot2::labs(title = title, x = var) +
+    ggplot2::labs(title = title, x = var, caption = caption) +
     theme_formatted()
 }
 
