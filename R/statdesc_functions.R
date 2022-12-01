@@ -9,10 +9,10 @@ var_summary <- function(df, var, ...){
   )
   
   kableExtra::kbl(df %>%
-                    select({{var}}) %>% 
+                    dplyr::select({{var}}) %>% 
                     psych::describe(quant = c(.25,.75)) %>% 
-                    mutate(IQR = Q0.75 - Q0.25) %>% 
-                    select(min, max, mean, median, sd, IQR) %>% 
+                    dplyr::mutate(IQR = Q0.75 - Q0.25) %>% 
+                    dplyr::select(min, max, mean, median, sd, IQR) %>% 
                     round(digits = 2),
                   caption = title,
                   booktabs = T,
@@ -23,14 +23,48 @@ var_summary <- function(df, var, ...){
 
 # -------------------------------------------------------------------------
 
+theme_formatted <- function(font = "Cambria"){
+  
+  extrafont::loadfonts(quiet = T)
+  
+  ggplot2::theme_bw(base_family = font) %+replace%    #replace elements we want to change
+    
+    ggplot2::theme(
+      plot.title = element_text(
+        family = font,
+        size = 15,
+        face = 'bold',
+        hjust = 0.5,
+        vjust = 1.5)
+    )
+}
+
+# -------------------------------------------------------------------------
+
 density_plot <- function(df, var, ...){
   
-  title <- glue::glue("Density plot of {var}")
+  title <- glue::glue("Density plot of <span style='color: darkred'>{var}</span>")
   
   df %>% 
-    ggplot(mapping = aes(x = get(var))) +
-    geom_density(fill = "#69b3a2", color = "grey30", alpha = 0.7) +
-    labs(title = title, x = var) +
-    theme_bw() +
-    theme(plot.title = element_text(hjust = 0.5))
+    ggplot2::ggplot(mapping = aes(x = get(var))) +
+    ggplot2::geom_density(fill = "#69b3a2", color = "grey30", alpha = 0.7) +
+    ggplot2::labs(title = title, x = var) +
+    theme_formatted()
 }
+
+# -------------------------------------------------------------------------
+
+hist_plot <- function(df, var, ...){
+  
+  title <- glue::glue("Histogram chart of <span style='color: darkred'>{var}</span>")
+  
+  df %>% 
+    ggplot2::ggplot(mapping = aes(x = get(var))) +
+    ggplot2::geom_histogram(fill = "#69b3a2",
+                            color = "grey30", alpha = 0.7, stat="count") +
+    ggplot2::labs(title = title, x = var) +
+    theme_formatted()
+}
+
+
+
