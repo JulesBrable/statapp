@@ -81,7 +81,7 @@ hist_plot <- function(df, var, nan = "none", ...){
   caption <- df %>% create_caption(var = var, nan = nan)
   
   df %>% 
-    filter(get(var) != nan) %>% 
+    dplyr::filter(get(var) != nan) %>% 
     ggplot2::ggplot(mapping = aes(x = get(var))) +
     ggplot2::geom_histogram(fill = "#69b3a2",
                             color = "grey30", alpha = 0.7, stat="count") +
@@ -94,14 +94,14 @@ hist_plot <- function(df, var, nan = "none", ...){
 transform_age <- function(df, agem = mager, agef = fagecomb){
   
   df %>% 
-    select({{agem}}) %>% 
-    mutate(sex = "F") %>% 
-    rename(age = {{agem}}) %>% 
-    bind_rows(
+    dplyr::select({{agem}}) %>% 
+    dplyr::mutate(sex = "F") %>% 
+    dplyr::rename(age = {{agem}}) %>% 
+    dplyr::bind_rows(
       df %>% 
-        select({{agef}}) %>% 
-        mutate(sex = "M") %>% 
-        rename(age = {{agef}})
+        dplyr::select({{agef}}) %>% 
+        dplyr::mutate(sex = "M") %>% 
+        dplyr::rename(age = {{agef}})
     )
 }
 
@@ -117,20 +117,20 @@ pyrage <- function(df,
                    x = "Age",
                    y = "Count"){
   df %>% 
-    group_by(sex, age) %>% 
-    count() %>% 
-    ggplot() +
-    aes(x = {{age}}, fill = {{sex}}) +
-    geom_bar(data = df %>% 
+    dplyr::group_by(sex, age) %>% 
+    dplyr::count() %>% 
+    ggplot2::ggplot() +
+    ggplot2::aes(x = {{age}}, fill = {{sex}}) +
+    ggplot2::geom_bar(data = df %>% 
                filter({{sex}} == f),
              mapping = aes(y = ..count.. * (-1))
     ) +
-    geom_bar(data = df %>% 
+    ggplot2::geom_bar(data = df %>% 
                filter({{sex}} == m, {{age}} != 99)
     ) +
-    scale_fill_manual(values = c("pink", "light blue")) +
-    coord_flip() +
+    ggplot2::scale_fill_manual(values = c("pink", "light blue")) +
+    ggplot2::coord_flip() +
     theme_formatted() +
-    labs(title = title, x = x, y = y)
+    ggplot2::labs(title = title, x = x, y = y)
 }
 
