@@ -7,15 +7,15 @@ library(tidyverse)
 
 source("R/statdesc_functions.R")
 
-path <- "data/"
+path <- "data"
 list.files(path = path)
-
 file <- "nat2021us.csv"
 
 # works but takes time
 #tab2021 <- fread("https://data.nber.org/nvss/natality/csv/nat2021us.csv")
 
-tab2021 <- fread(glue::glue("{path}{file}"))
+tab2021 <- load_data(path, file)
+
 # !!!!!WARNING: don't directly view the raw table (way too large)
 
 # FIRST GLANCE AT THE DATA ------------------------------------------------
@@ -155,6 +155,10 @@ tab2021 %>%
   var_summary(vars)
 
 
+###### age pyramid #######
+tab2021 %>%
+  transform_age() %>% 
+  pyrage()
 
 ###############
 # reste quelques variables geographiques/ sexe de l'enfant

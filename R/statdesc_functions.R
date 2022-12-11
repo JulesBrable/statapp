@@ -1,6 +1,13 @@
 
 # ---------------------------------------------------------------------
 
+load_data <- function(path, file){
+  
+  tab2021 <- fread(glue::glue("{path}/{file}"))
+}
+
+# ---------------------------------------------------------------------
+
 var_summary <- function(df, var, nan = "none", ...){
   
   title <- glue::glue(
@@ -82,5 +89,48 @@ hist_plot <- function(df, var, nan = "none", ...){
     theme_formatted()
 }
 
+# -------------------------------------------------------------------------
 
+transform_age <- function(df, agem = mager, agef = fagecomb){
+  
+  df %>% 
+    select({{agem}}) %>% 
+    mutate(sex = "F") %>% 
+    rename(age = {{agem}}) %>% 
+    bind_rows(
+      df %>% 
+        select({{agef}}) %>% 
+        mutate(sex = "M") %>% 
+        rename(age = {{agef}})
+    )
+}
+
+# -------------------------------------------------------------------------
+
+pyrage <- function(df,
+                   age = age,
+                   sex = sex,
+                   n = n,
+                   f = "F",
+                   m = "M",
+                   title = "Age pyramid",
+                   x = "Age",
+                   y = "Count"){
+  df %>% 
+    group_by(sex, age) %>% 
+    count() %>% 
+    ggplot() +
+    aes(x = {{age}}, fill = {{sex}}) +
+    geom_bar(data = df %>% 
+               filter({{sex}} == f),
+             mapping = aes(y = ..count.. * (-1))
+    ) +
+    geom_bar(data = df %>% 
+               filter({{sex}} == m, {{age}} != 99)
+    ) +
+    scale_fill_manual(values = c("pink", "light blue")) +
+    coord_flip() +
+    theme_formatted() +
+    labs(title = title, x = x, y = y)
+}
 
