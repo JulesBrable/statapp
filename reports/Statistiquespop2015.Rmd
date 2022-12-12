@@ -1,8 +1,8 @@
 ---
-title: "V2"
-output:
-  pdf_document: default
-  word_document: default
+title: "Stats desc 2015"
+author: "Noémie Guibe"
+date: "`r Sys.Date()`"
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -14,31 +14,39 @@ library(tidyverse)
 
 
 ```{r}
-setwd("~/Documents/2A/Statapp/données")
-library(readr)
-pop2015 <- read_csv(pop2015)
+pop2015 <- read_csv("data/pop2015.csv")
 head.matrix(pop2015)
 ```
 
+<br>
+
 ```{r}
-#parmi ceux qui ont eu recours à des traitements contre l'infertilité
 table(pop2015$rf_artec)
-# 27722 ont recours à des traitements contre l'infertilité sous forme de médicaments ou insémination artificielle
+
 round(table(pop2015$rf_fedrg)/length(pop2015$rf_fedrg),3) # soit 45% 
 
 table(natl2015$rf_artec)
-# 34235 sous forme d'assisted reproductive technology (ART) (IVF ou autres)
+
 round(table(pop2015$rf_artec)/length(pop2015$rf_artec),3) # soit 55%
 
 # recoupement absent?
 
 round(table(pop2015$priorlive)/length(pop2015$priorlive),3)
-# De plus, 56% n'ont pas eu d'enfant auparavant
 ```
 
+<br>
+
+Parmi ceux qui ont eu recours à des traitements contre l'infertilité:
+
+- 27722 ont recours à des traitements contre l'infertilité sous forme de médicaments ou insémination artificielle;
+- 34235 sous forme d'assisted reproductive technology (ART) (IVF ou autres)
+
+De plus, 56% n'ont pas eu d'enfant auparavant
+
+<br>
 
 
-**AGE DES PARENTS**
+## AGE DES PARENTS
 
 Age de la mère : 
 12 10 – 12 years
@@ -64,19 +72,22 @@ Age du père :
 summary(select(pop2015,mager))
 summary(select(pop2015,fagerec11))
 round(table(pop2015$fagerec11)/length(pop2015$fagerec11),3)
-# 60% des pères sont âgés de 30 à 39 ans
 ```
+
+<br>
+
+# 60% des pères sont âgés de 30 à 39 ans
+
+<br>
 
 ```{r}
 plot(density(pop2015$mager), lwd = 2, col = "orange", xlab = "", main = "âge de la mère à la naissance")
 hist(pop2015$fagerec11, col = "cornflowerblue", xlab = "", main  = "âge du père à la naissance")
 ```
 
+<br>
 
-
-
-
-**ETHNIE DES PARENTS**
+# ETHNIE DES PARENTS
 
 Race de la mère : 
 1 White (only)
@@ -94,6 +105,8 @@ Ethnie du père : 1.34, 75% blanc
 6 More than one race
 9 Unknown or Not Stated
 
+<br>
+
 ```{r}
 summary(select(pop2015,mrace6))
 summary(select(pop2015,frace6))
@@ -105,8 +118,9 @@ round(table(pop2015$frace6)/length(pop2015$frace6),3)
 hist(pop2015$frace6, col = "cornflowerblue", xlab = "", main  = "ethnie du père")
 ```
 
+<br>
 
-**EDUCATION DES PARENTS**
+# EDUCATION DES PARENTS
 éducation de la mère : 
 1 8th grade or less
 2 9th through 12th grade with no diploma
@@ -143,7 +157,9 @@ hist(pop2015$feduc, col = "cornflowerblue", xlab = "", main  = "niveau d'éducat
 hist(pop2015$meduc, col = "cornflowerblue", xlab = "", main  = "niveau d'éducation de la mère")
 ```
 
-**CARECTERISTIQUES DU COUPLE**
+<br>
+
+# CARECTERISTIQUES DU COUPLE
 
 Statut marital : 
 1 Married
@@ -165,8 +181,9 @@ round(table(pop2015$priorlive)/length(pop2015$priorlive),3) # 87% ont déjà au 
 hist(pop2015$priorlive, col = "cornflowerblue", xlab = "", main  = "nombre d'enfants")
 ```
 
+<br>
 
-**SANTE DE L'ENFANT**
+# SANTE DE L'ENFANT
 
 Score Apgar : 3.76, 50% au moins 9
 1 A score of 0-3
