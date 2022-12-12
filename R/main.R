@@ -103,11 +103,12 @@ tab2021 %>% select(risk) %>% sapply(function(x){
 
 # pma
 pma <- c("rf_inftr", "rf_fedrg", "rf_artec")
-tab2021 %>% select(all_of(pma)) %>% sapply(function(x){
-  table(factor(x,
-               levels = unique(unlist(tab2021$rf_inftr)),
-               ordered = TRUE))
-}) # lot of nan
+titi %>% 
+  get_prop(rf_inftr) %>% 
+  bind_rows(titi %>% 
+              get_prop(rf_fedrg)) %>% 
+  bind_rows(titi %>% 
+              get_prop(rf_artec))
 
 #infections
 inf <- c("ip_gon", "ip_syph", "ip_chlam", "ip_hepatb", "ip_hepatc")

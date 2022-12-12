@@ -1,9 +1,18 @@
 
 # ---------------------------------------------------------------------
 
-load_data <- function(path, file){
+load_data <- function(file, path = "data"){
   
-  tab2021 <- fread(glue::glue("{path}/{file}"))
+  tab2021 <- fread(here::here(glue::glue("{path}/{file}")))
+}
+
+# ---------------------------------------------------------------------
+
+template <- function(kble){
+  
+  kble %>% 
+    kableExtra::row_spec(0, bold = T) %>% 
+    kableExtra::kable_classic(full_width = F, html_font = "Cambria")
 }
 
 # ---------------------------------------------------------------------
@@ -26,8 +35,19 @@ var_summary <- function(df, var, nan = "none", ...){
                   caption = title,
                   booktabs = T,
                   linesep = "") %>% 
-    kableExtra::row_spec(0, bold = T) %>% 
-    kableExtra::kable_classic(full_width = F, html_font = "Cambria")
+    template()
+}
+
+
+# -------------------------------------------------------------------------
+
+get_prop <- function(df, col, round_perc = 3){
+  
+  df %>% 
+    select({{col}}) %>% 
+    table() %>% 
+    prop.table() %>% 
+    round(round_perc)
 }
 
 # -------------------------------------------------------------------------
