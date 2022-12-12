@@ -1,0 +1,198 @@
+---
+title: "V2"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+setwd("~/Documents/2A/Statapp/données")
+library(readr)
+pop2015 <- read_csv(pop2015)
+head.matrix(pop2015)
+```
+
+```{r}
+#parmi ceux qui ont eu recours à des traitements contre l'infertilité
+table(pop2015$rf_artec)
+# 27722 ont recours à des traitements contre l'infertilité sous forme de médicaments ou insémination artificielle
+round(table(pop2015$rf_fedrg)/length(pop2015$rf_fedrg),3) # soit 45% 
+
+table(natl2015$rf_artec)
+# 34235 sous forme d'assisted reproductive technology (ART) (IVF ou autres)
+round(table(pop2015$rf_artec)/length(pop2015$rf_artec),3) # soit 55%
+
+# recoupement absent?
+
+round(table(pop2015$priorlive)/length(pop2015$priorlive),3)
+# De plus, 56% n'ont pas eu d'enfant auparavant
+```
+
+
+
+**AGE DES PARENTS**
+
+Age de la mère : 
+12 10 – 12 years
+13 13 years
+...
+49 49 years
+50 50 years and over
+
+Age du père :
+01 Under 15 years
+02 15-19 years
+03 20-24 years
+04 25-29 years
+05 30-34 years
+06 35-39 years
+07 40-44 years
+08 45-49 years
+09 50-54 years
+10 55-98 years
+11 Not stated
+
+```{r}
+summary(select(pop2015,mager))
+summary(select(pop2015,fagerec11))
+round(table(pop2015$fagerec11)/length(pop2015$fagerec11),3)
+# 60% des pères sont âgés de 30 à 39 ans
+```
+
+```{r}
+plot(density(pop2015$mager), lwd = 2, col = "orange", xlab = "", main = "âge de la mère à la naissance")
+hist(pop2015$fagerec11, col = "cornflowerblue", xlab = "", main  = "âge du père à la naissance")
+```
+
+
+
+
+
+**ETHNIE DES PARENTS**
+
+Race de la mère : 
+1 White (only)
+3 AIAN (American Indian or Alaskan Native) (only)
+4 Asian (only)
+5 NHOPI (Native Hawaiian or Other Pacific Islander) (only)
+6 More than one race
+
+Ethnie du père : 1.34, 75% blanc
+1 White (only)
+2 Black (only)
+3 AIAN (only)
+4 Asian (only)
+5 NHOPI (only)
+6 More than one race
+9 Unknown or Not Stated
+
+```{r}
+summary(select(pop2015,mrace6))
+summary(select(pop2015,frace6))
+round(table(pop2015$frace6)/length(pop2015$frace6),3)
+# 85 % des pères sont blancs, 9% asiatiques et 5% noirs
+```
+
+```{r}
+hist(pop2015$frace6, col = "cornflowerblue", xlab = "", main  = "ethnie du père")
+```
+
+
+**EDUCATION DES PARENTS**
+éducation de la mère : 
+1 8th grade or less
+2 9th through 12th grade with no diploma
+3 High school graduate or GED completed
+4 Some college credit, but not a degree.
+5 Associate degree (AA,AS)
+6 Bachelor’s degree (BA, AB, BS)
+7 Master’s degree (MA, MS, MEng, MEd, MSW, MBA)
+8 Doctorate (PhD, EdD) or Professional Degree (MD, DDS,DVM, LLB, JD)
+9 Unknown
+
+Education du père : 5.6, 
+1 8th grade or less
+2 9th through 12th grade with no diploma
+3 High school graduate or GED completed
+4 Some college credit, but not a degree.
+5 Associate degree (AA,AS)
+6 Bachelor’s degree (BA, AB, BS)
+7 Master’s degree (MA, MS, MEng, MEd, MSW, MBA)
+8 Doctorate (PhD, EdD) or Professional Degree (MD, DDS,DVM, LLB, JD)
+9 Unknown
+
+
+```{r}
+summary(select(pop2015,meduc))
+summary(select(pop2015,feduc))
+round(table(pop2015$meduc)/length(pop2015$meduc),3)
+round(table(pop2015$feduc)/length(pop2015$feduc),3)
+```
+
+
+```{r}
+hist(pop2015$feduc, col = "cornflowerblue", xlab = "", main  = "niveau d'éducation du père")
+hist(pop2015$meduc, col = "cornflowerblue", xlab = "", main  = "niveau d'éducation de la mère")
+```
+
+**CARECTERISTIQUES DU COUPLE**
+
+Statut marital : 
+1 Married
+2 Unmarried
+
+Enfant(s) encore en vie : 
+00-30 Number of children still living from previous live births.
+99 Unknown or not stated
+
+
+```{r}
+summary(select(pop2015,dmar))
+summary(select(pop2015,priorlive))
+round(table(pop2015$dmar)/length(pop2015$dmar),3) # 97% sont mariés
+round(table(pop2015$priorlive)/length(pop2015$priorlive),3) # 87% ont déjà au plus un enfant
+```
+
+```{r}
+hist(pop2015$priorlive, col = "cornflowerblue", xlab = "", main  = "nombre d'enfants")
+```
+
+
+**SANTE DE L'ENFANT**
+
+Score Apgar : 3.76, 50% au moins 9
+1 A score of 0-3
+2 A score of 4-6
+3 A score of 7-8
+4 A score of 9-10
+5 Unknown or not stated
+
+Poids à la naissance :
+0227-8165 Number of grams
+9999 Not stated birth weight
+
+
+```{r}
+summary(select(pop2015,apgar5r))
+summary(select(pop2015,dbwt))
+```
+
+```{r}
+hist(pop2015$apgar5r, col = "cornflowerblue", xlab = "", main  = "Score Apgar")
+```
+
+
+
+```{r}
+plot(density(pop2015$dbwt), lwd = 2, col = "orange", xlab = "", main = "poids à la naissance")
+```
+
+
