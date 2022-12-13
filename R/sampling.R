@@ -21,7 +21,12 @@ ndiff2 <- setdiff(
   (sample_df("nat2019us.csv", n = 1, segment_treat = F) %>% colnames())
 )
 
-to_remove <- c(ndiff1, ndiff2)
+ndiff3 <- setdiff(
+  (sample_df("nat2021us.csv", n = 1, segment_treat = F) %>% colnames()),
+  (sample_df("nat2018us.csv", n = 1, segment_treat = F) %>% colnames())
+)
+
+to_remove <- c(ndiff1, ndiff2, ndiff3)
 
 
 ## import data ##
@@ -33,10 +38,12 @@ n <- 300000
 s2021 <- sample_df("nat2021us.csv", n, remove = to_remove)
 s2020 <- sample_df("nat2020us.csv", n, remove = to_remove)
 s2019 <- sample_df("nat2019us.csv", n, remove = to_remove)
+s2018 <- sample_df("nat2018us.csv", n, remove = to_remove)
 
 mixsample <- s2021 %>% 
   bind_rows(s2020) %>% 
-  bind_rows(s2019)
+  bind_rows(s2019) %>% 
+  bind_rows(s2018)
 
 # STAT DESC ---------------------------------------------------------------
 

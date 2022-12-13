@@ -14,8 +14,8 @@ library(tidyverse)
 
 
 ```{r}
-pop2015 <- read_csv("data/pop2015.csv")
-head.matrix(pop2015)
+pop2015 <- read_csv(here::here("data/pop2015.csv"))
+head(pop2015)
 ```
 
 <br>
@@ -25,7 +25,7 @@ table(pop2015$rf_artec)
 
 round(table(pop2015$rf_fedrg)/length(pop2015$rf_fedrg),3) # soit 45% 
 
-table(natl2015$rf_artec)
+table(pop2015$rf_artec)
 
 round(table(pop2015$rf_artec)/length(pop2015$rf_artec),3) # soit 55%
 
