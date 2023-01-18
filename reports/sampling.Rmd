@@ -12,45 +12,12 @@ knitr::opts_chunk$set(echo = T, error = F, warning = F, message = F)
 # SETTING ENVIRONEMENT
 
 ```{r}
-rm(list = ls())
-
-library(data.table)
 library(tidyverse)
 
 source(here::here("R/statdesc_functions.R"))
 source(here::here("R/sampling_functions.R"))
 
-list.files(path = "data")
-
-## import data ##
-# loading all 2021 data in order to compare
-tab2021 <- load_data("nat2021us.csv")
-
-# designing our sample #
-
-# issue with the column names #
-ndiff1 <- setdiff(
-  (sample_df("nat2019us.csv", n = 1, segment_treat = F) %>% colnames()),
-  (sample_df("nat2021us.csv", n = 1, segment_treat = F) %>% colnames())
-)
-
-ndiff2 <- setdiff(
-  (sample_df("nat2021us.csv", n = 1, segment_treat = F) %>% colnames()),
-  (sample_df("nat2019us.csv", n = 1, segment_treat = F) %>% colnames())
-)
-
-to_remove <- c(ndiff1, ndiff2)
-
-n <- 300000
-s2021 <- sample_df("nat2021us.csv",  n, remove = to_remove)
-s2020 <- sample_df("nat2020us.csv", n, remove = to_remove)
-s2019 <- sample_df("nat2019us.csv", n, remove = to_remove)
-s2018 <- sample_df("nat2018us.csv", n, remove = to_remove)
-
-mixsample <- s2021 %>% 
-  bind_rows(s2020) %>% 
-  bind_rows(s2019) %>% 
-  bind_rows(s2018)
+df <- load_data("data.csv")
 
 pma <- c("Infertility Treatment Used",
          "Fertility Enhancing Drugs",
@@ -59,35 +26,18 @@ pma <- c("Infertility Treatment Used",
 
 # STAT DESC
 
-- Sur les `r tab2021 %>% nrow()` données de 2021, on a:
-
 <br>
 
-```{r}
-tab2021 %>% 
-  get_prop(rf_inftr) %>% 
-  bind_rows(tab2021 %>% 
-              get_prop(rf_fedrg)) %>% 
-  bind_rows(tab2021 %>% 
-              get_prop(rf_artec)) %>% 
-  mutate(var = pma) %>%
-  relocate(var) %>% 
-  kableExtra::kbl() %>% 
-  template()
-```
+Sur les `r mixsample %>% nrow()` données de notre échantillon (2018 + 2019 + 2020 + 2021), on a:
 
 <br>
-
-- Sur les `r mixsample %>% nrow()` données de notre échantillon (2019 + 2020 + 2021), on a:
-
- <br>
 
 ```{r echo=FALSE}
-mixsample %>% 
+df %>% 
   get_prop(rf_inftr) %>% 
-  bind_rows(tab2021 %>% 
+  bind_rows(df %>% 
               get_prop(rf_fedrg)) %>% 
-  bind_rows(tab2021 %>% 
+  bind_rows(df %>% 
               get_prop(rf_artec)) %>% 
   mutate(var = pma) %>%
   relocate(var) %>% 
@@ -96,9 +46,14 @@ mixsample %>%
 ```
 
 
+```{r}
+df %>%
+  transform_age() %>% 
+  pyrage()
 
-
-
-
-
+df %>%
+  get_prop(rf_artec) %>%
+  kableExtra::kbl() %>% 
+  template()
+```
 
