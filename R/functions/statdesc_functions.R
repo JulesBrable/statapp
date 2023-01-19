@@ -3,6 +3,8 @@
 
 template <- function(kble){
   
+  # Create a template for styling statistical summary
+  
   kble %>% 
     kableExtra::row_spec(0, bold = T) %>% 
     kableExtra::kable_classic(full_width = F, html_font = "Cambria")
@@ -47,6 +49,9 @@ get_prop <- function(df, col, round_perc = 3){
 
 theme_formatted <- function(font = "Cambria"){
   
+  # Create a formatted theme for ggplot2 plots that we will produce
+  # e.g., it allows to have the same font (Cambria by default) and size etc
+  
   extrafont::loadfonts(quiet = T)
   
   ggplot2::theme_bw(base_family = font) %+replace%    #replace elements we want to change
@@ -58,7 +63,7 @@ theme_formatted <- function(font = "Cambria"){
         face = 'bold',
         hjust = 0.5,
         vjust = 1.5),
-      plot.caption = element_text(hjust = 0)
+      plot.caption = element_text(hjust = 0, face = "italic")
     )
 }
 
@@ -66,7 +71,9 @@ theme_formatted <- function(font = "Cambria"){
 
 create_caption <- function(df, var, nan){
   
-  glue::glue("Number of NaNs: {df %>% filter(get(var) == nan | is.na(get(var))) %>% count()}.")
+  glue::glue("Number of NaNs: {df %>%
+             filter(get(var) == nan | is.na(get(var))) %>%
+             count()}.")
 }
 
 # -------------------------------------------------------------------------
@@ -106,6 +113,8 @@ hist_plot <- function(df, var, nan = "none", ...){
 
 transform_age <- function(df, agem = mager, agef = fagecomb){
   
+  # allows to create a column named "age" for both male and female people
+  
   df %>% 
     dplyr::select({{agem}}) %>% 
     dplyr::mutate(sex = "F") %>% 
@@ -128,22 +137,40 @@ pyrage <- function(df,
                    m = "M",
                    title = "Age pyramid",
                    x = "Age",
-                   y = "Count"){
+                   y = "Percentage"){
+  
+  # get percentage for each age by sex
+  df <- df %>% 
+    dplyr::count({{sex}}, {{age}}) %>% 
+    dplyr::filter({{age}} != 99) %>% 
+    dplyr::group_by({{sex}}) %>% 
+    dplyr::mutate(perc = n*100/sum(n))
+  
+  # create caption
+  caption <- glue::glue("N = {df %>%
+                        summarize(n = sum(n)) %>% 
+                        filter(sex == f) %>% 
+                        pull(n)}")
+  
+  # create pyramid age
   df %>% 
-    dplyr::group_by(sex, age) %>% 
-    dplyr::count() %>% 
     ggplot2::ggplot() +
     ggplot2::aes(x = {{age}}, fill = {{sex}}) +
     ggplot2::geom_bar(data = df %>% 
-               filter({{sex}} == f),
-             mapping = aes(y = ..count.. * (-1))
+               dplyr::filter({{sex}} == f),
+             mapping = aes(y = perc * (-1)),
+             stat = "identity"
     ) +
     ggplot2::geom_bar(data = df %>% 
-               filter({{sex}} == m, {{age}} != 99)
+               dplyr::filter({{sex}} == m),
+               mapping = aes(y = perc),
+               stat = "identity"
     ) +
     ggplot2::scale_fill_manual(values = c("pink", "light blue")) +
     ggplot2::coord_flip() +
-    theme_formatted() +
-    ggplot2::labs(title = title, x = x, y = y)
+    ggplot2::scale_y_continuous(labels = abs) +
+    ggplot2::labs(title = title, x = x, y = y, caption = caption) +
+    theme_formatted()
 }
+
 

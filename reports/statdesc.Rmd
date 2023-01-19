@@ -2,20 +2,23 @@
 title: "sampling"
 author: "Jules Brable"
 date: "`r Sys.Date()`"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = T, error = F, warning = F, message = F) 
 ```
 
-# SETTING ENVIRONEMENT
+### SETTING ENVIRONEMENT
 
 ```{r}
 library(tidyverse)
 
-source(here::here("R/statdesc_functions.R"))
-source(here::here("R/sampling_functions.R"))
+source(here::here("R/functions/statdesc_functions.R"))
+source(here::here("R/functions/sampling_functions.R"))
 
 df <- load_data("data.csv")
 
@@ -28,7 +31,7 @@ pma <- c("Infertility Treatment Used",
 
 <br>
 
-Sur les `r mixsample %>% nrow()` données de notre échantillon (2018 + 2019 + 2020 + 2021), on a:
+Sur les `r df %>% nrow()` données de notre échantillon (2018 + 2019 + 2020 + 2021), on a:
 
 <br>
 
@@ -45,15 +48,318 @@ df %>%
   template()
 ```
 
+<br>
 
 ```{r}
 df %>%
   transform_age() %>% 
   pyrage()
-
+  
 df %>%
   get_prop(rf_artec) %>%
   kableExtra::kbl() %>% 
   template()
+
+df %>%
+  get_prop(rf_inftr) %>%
+  kableExtra::kbl() %>% 
+  template()
 ```
 
+<br>
+
+```{r}
+df <- df %>% 
+  filter(meduc != 9, fagerec11 != 11, frace6 != 9, feduc != 9, apgar5 != 5, priorlive != 99)
+
+df %>% dim()
+```
+
+<br>
+
+### Population cible
+
+```{r}
+pop <- df %>% filter(rf_inftr == "Y")
+pop %>% dim()
+```
+
+<br>
+
+Parmi ceux qui ont eu recours à des traitements contre l'infertilité (ie, la population cible), voici la répartition du recours ou non à des traitements contre l'infertilité sous forme de médicaments ou insémination artificielle :
+
+<br>
+
+```{r}
+pop %>% get_prop(rf_fedrg) %>%
+  kableExtra::kbl() %>% 
+  template()
+```
+
+<br>
+ 
+Et sous forme d'assisted reproductive technology (ART) (IVF ou autres):
+
+<br>
+
+```{r}
+pop %>% get_prop(rf_artec) %>%
+  kableExtra::kbl() %>% 
+  template()
+```
+
+<br>
+ 
+Et sous forme d'assisted reproductive technology (ART) (IVF ou autres):
+
+<br>
+
+**Répartition de la population cible selon le nombre d'enfants avant cette naissance:**
+
+<br>
+
+```{r}
+pop %>% get_prop(priorlive) %>%
+  kableExtra::kbl() %>% 
+  template()
+```
+
+### Age des parents
+
+<br>
+
+```{r}
+pop %>%
+  transform_age() %>% 
+  pyrage()
+```
+
+```{r}
+pop %>% get_prop(fagerec11) %>%
+  kableExtra::kbl() %>% 
+  template()
+```
+
+<br>
+
+<br>
+
+```{r}
+pop %>% 
+  transform_age() %>%
+  summary("age")
+
+df %>% 
+  transform_age() %>%
+  summary("age")
+```
+
+<br>
+
+Sur la population cible, l'âge médian des hommes est de `r pop %>% transform_age() %>% filter(sex == "M") %>% summarize(res = median(age)) %>% pull(res)` ans, contre `r pop %>% transform_age() %>% filter(sex == "F") %>% summarize(res = median(age)) %>% pull(res)` ans pour les femmes.
+
+### Ethnie des parents
+
+<br>
+
+```{r}
+summary(pop %>% mutate(mrace6 = mrace6/10) %>% select(mrace6)) %>% 
+  bind_cols(summary(select(pop,frace6)))
+
+round(table(pop$frace6)/length(pop$frace6),3)
+round(table(pop$mrace15)/length(pop$mrace6),3)
+# taux similaires pour les mères
+```
+
+
+```{r}
+hist(pop$frace6, col = "cornflowerblue", xlab = "", main  = "ethnie du père (pop cible")
+
+hist(df$frace6, col = "cornflowerblue", xlab = "", main  = "ethnie du père (pop entiere")
+
+```
+
+<br>
+
+### Education des parents
+
+<br>
+
+Sur la population cible, on a :
+
+<br>
+
+```{r}
+summary(select(pop,meduc))
+summary(select(pop,feduc))
+```
+
+<br>
+
+```{r}
+round(table(pop$meduc)/length(pop$meduc),3)
+round(table(pop$feduc)/length(pop$feduc),3)
+```
+
+
+Alors que sur la population entière on obtient :
+
+```{r}
+summary(select(df,meduc))
+summary(select(df,feduc))
+```
+
+<br>
+
+```{r}
+round(table(df$meduc)/length(df$meduc),3)
+round(table(df$feduc)/length(df$feduc),3)
+```
+
+<br>
+
+```{r}
+hist(pop$feduc, col = "cornflowerblue", xlab = "", main  = "niveau d'éducation du père (pop cible)")
+hist(pop$meduc, col = "cornflowerblue", xlab = "", main  = "niveau d'éducation de la mère (pop cible)")
+```
+
+<br>
+
+### Caractéristiques du couple
+
+<br>
+
+```{r}
+summary(select(pop,dmar))
+summary(select(pop,priorlive))
+summary(select(pop,dplural))
+round(table(pop$dmar)/length(pop$dmar),3)
+round(table(pop$priorlive)/length(pop$priorlive),3)
+round(table(pop$dplural)/length(pop$dplural),3)
+```
+
+```{r}
+hist(pop$priorlive, col = "cornflowerblue", xlab = "", main  = "nombre d'enfants")
+box()
+```
+`
+<br>
+
+Sur la population entière: 
+
+<br>
+
+```{r}
+summary(select(df,dmar))
+summary(select(df,priorlive))
+summary(select(df,dplural))
+round(table(df$dmar)/length(df$dmar),3) # 61% sont mariés
+round(table(df$priorlive)/length(df$priorlive),3) # 38% n'ont pas eu d'enfant mais presque 30% ont déjà 2 enfants ou plus contre 12%
+round(table(df$dplural)/length(df$dplural),3) # seul 3% des mères ont donné naissance à des jumeaux
+```
+
+<br>
+
+### Santé de l'enfant
+
+<br>
+
+```{r}
+summary(select(pop,apgar5r))
+summary(select(pop,dbwt))
+```
+
+```{r}
+hist(pop$apgar5r, col = "cornflowerblue", xlab = "", main  = "Score Apgar")
+```
+
+
+```{r}
+plot(density(pop$dbwt), lwd = 2, col = "orange", xlab = "", main = "poids à la naissance")
+```
+
+Sur la population entière :
+
+```{r}
+summary(select(df,apgar5r))
+summary(select(df,dbwt))
+```
+
+```{r}
+hist(df$apgar5r, col = "cornflowerblue", xlab = "", main  = "Score Apgar")
+```
+```{r}
+plot(density(df$dbwt), lwd = 2, col = "orange", xlab = "", main = "poids à la naissance")
+```
+
+<br>
+
+## Régressions linéaires
+
+<br>
+
+```{r}
+to_keep <- c("dbwt", "mager", "meduc", "mrace6", "fagerec11", "feduc", "frace6", "priorlive", "dmar", "rf_inftr", "rf_artec", "rf_fedrg")
+df_reg <- df %>% select(to_keep)
+```
+
+<br>
+
+Régression du poids à la naissance sur plusieurs variables explicatives (dont l'age de la mere au carré):
+
+<br>
+
+```{r}
+df_reg$age2 <- df_reg$mager**2
+
+res <- lm(dbwt ~ .,
+       data = df_reg)
+summary(res)
+```
+
+<br>
+
+En ajoutant la jumélité:
+
+<br>
+
+```{r}
+df_reg <- df %>% select(to_keep, dplural)
+MR3 <- lm(dbwt ~ .,
+          data = df_reg)
+summary(MR3)
+```
+
+<br>
+
+Maintenant, si on regarde uniquement la population ayant recours au traitement :
+
+<br>
+
+```{r}
+pop$age2 <-  pop$mager**2
+MR5 <- lm(dbwt ~ mager + meduc + mrace6 + age2 + fagerec11 + feduc + frace6 + priorlive + dmar + rf_artec + rf_fedrg, data=pop)
+summary(MR5)
+
+```
+
+<br>
+
+```{r}
+MR6 <- lm(dbwt~ mager + meduc + mrace6 + age2 + fagerec11 + feduc + frace6 + priorlive + dmar + dplural + rf_artec + rf_fedrg, data=pop)
+summary(MR6)
+
+```
+
+<br>
+
+### Corélation entre le recours à médicaments et la gémélité
+
+```{r}
+gemelite <- lm(dplural ~ mager + rf_fedrg + rf_artec, data=df)
+summary(gemelite)
+```
+
+<br>
+
+Reste à faire des tests d'indépendance (Khi2/KS/Student)

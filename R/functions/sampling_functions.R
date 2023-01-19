@@ -18,7 +18,7 @@ sample_df <- function(file, n, segment_treat = TRUE, path = "data",
   
   set.seed(42) # reproducibility
   
-  if (segment_treat == FALSE){
+  if (!isTRUE(segment_treat)) {
     
     if (length(remove) > 0) {
       return(
@@ -95,3 +95,6 @@ make_sample <- function(n, to_remove){
   
   return(mixsample)
 }
+
+
+

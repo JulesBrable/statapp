@@ -1,4 +1,4 @@
-source(here::here("R/sampling_functions.R"))
+source(here::here("R/functions/sampling_functions.R"))
 
 ## import data ##
 # designing our sample #
