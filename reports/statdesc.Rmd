@@ -82,6 +82,8 @@ df %>% dim()
 ```{r}
 pop <- df %>% filter(rf_inftr == "Y")
 pop %>% dim()
+
+popnc <- df %>% filter(rf_inftr != "Y")
 ```
 
 <br>
@@ -124,6 +126,13 @@ pop %>% get_prop(priorlive) %>%
   template()
 ```
 
+```{r}
+popnc %>%
+  get_prop(priorlive) %>%
+  kableExtra::kbl() %>% 
+  template()
+```
+
 ### Age des parents
 
 <br>
@@ -135,12 +144,20 @@ pop %>%
 ```
 
 ```{r}
-pop %>% get_prop(fagerec11) %>%
+pop %>%
+  get_prop(fagerec11) %>%
   kableExtra::kbl() %>% 
   template()
 ```
 
 <br>
+
+```{r}
+popnc %>%
+  get_prop(fagerec11) %>%
+  kableExtra::kbl() %>% 
+  template()
+```
 
 <br>
 
@@ -149,7 +166,7 @@ pop %>%
   transform_age() %>%
   summary("age")
 
-df %>% 
+popnc %>% 
   transform_age() %>%
   summary("age")
 ```
@@ -157,6 +174,8 @@ df %>%
 <br>
 
 Sur la population cible, l'âge médian des hommes est de `r pop %>% transform_age() %>% filter(sex == "M") %>% summarize(res = median(age)) %>% pull(res)` ans, contre `r pop %>% transform_age() %>% filter(sex == "F") %>% summarize(res = median(age)) %>% pull(res)` ans pour les femmes.
+
+Sur les non traités, l'âge médian des hommes est de `r popnc %>% transform_age() %>% filter(sex == "M") %>% summarize(res = median(age)) %>% pull(res)` ans, contre `r popnc %>% transform_age() %>% filter(sex == "F") %>% summarize(res = median(age)) %>% pull(res)` ans pour les femmes.
 
 ### Ethnie des parents
 
@@ -175,7 +194,7 @@ round(table(pop$mrace15)/length(pop$mrace6),3)
 ```{r}
 hist(pop$frace6, col = "cornflowerblue", xlab = "", main  = "ethnie du père (pop cible")
 
-hist(df$frace6, col = "cornflowerblue", xlab = "", main  = "ethnie du père (pop entiere")
+hist(popnc$frace6, col = "cornflowerblue", xlab = "", main  = "ethnie du père (pop NT")
 
 ```
 
@@ -205,15 +224,15 @@ round(table(pop$feduc)/length(pop$feduc),3)
 Alors que sur la population entière on obtient :
 
 ```{r}
-summary(select(df,meduc))
-summary(select(df,feduc))
+summary(select(popnc,meduc))
+summary(select(popnc,feduc))
 ```
 
 <br>
 
 ```{r}
-round(table(df$meduc)/length(df$meduc),3)
-round(table(df$feduc)/length(df$feduc),3)
+round(table(popnc$meduc)/length(popnc$meduc),3)
+round(table(popnc$feduc)/length(popnc$feduc),3)
 ```
 
 <br>
@@ -250,12 +269,12 @@ Sur la population entière:
 <br>
 
 ```{r}
-summary(select(df,dmar))
-summary(select(df,priorlive))
-summary(select(df,dplural))
-round(table(df$dmar)/length(df$dmar),3) # 61% sont mariés
-round(table(df$priorlive)/length(df$priorlive),3) # 38% n'ont pas eu d'enfant mais presque 30% ont déjà 2 enfants ou plus contre 12%
-round(table(df$dplural)/length(df$dplural),3) # seul 3% des mères ont donné naissance à des jumeaux
+summary(select(popnc,dmar))
+summary(select(popnc,priorlive))
+summary(select(popnc,dplural))
+round(table(popnc$dmar)/length(popnc$dmar),3)
+round(table(popnc$priorlive)/length(popnc$priorlive),3)
+round(table(popnc$dplural)/length(popnc$dplural),3)
 ```
 
 <br>
@@ -281,15 +300,15 @@ plot(density(pop$dbwt), lwd = 2, col = "orange", xlab = "", main = "poids à la 
 Sur la population entière :
 
 ```{r}
-summary(select(df,apgar5r))
-summary(select(df,dbwt))
+summary(select(popnc,apgar5r))
+summary(select(popnc,dbwt))
 ```
 
 ```{r}
-hist(df$apgar5r, col = "cornflowerblue", xlab = "", main  = "Score Apgar")
+hist(popnc$apgar5r, col = "cornflowerblue", xlab = "", main  = "Score Apgar")
 ```
 ```{r}
-plot(density(df$dbwt), lwd = 2, col = "orange", xlab = "", main = "poids à la naissance")
+plot(density(popnc$dbwt), lwd = 2, col = "orange", xlab = "", main = "poids à la naissance")
 ```
 
 <br>
@@ -299,7 +318,7 @@ plot(density(df$dbwt), lwd = 2, col = "orange", xlab = "", main = "poids à la n
 <br>
 
 ```{r}
-to_keep <- c("dbwt", "mager", "meduc", "mrace6", "fagerec11", "feduc", "frace6", "priorlive", "dmar", "rf_inftr", "rf_artec", "rf_fedrg")
+to_keep <- c("dbwt", "mager", "meduc", "mrace6", "fagerec11", "feduc", "frace6", "priorlive", "dmar", "rf_artec")
 df_reg <- df %>% select(to_keep)
 ```
 
@@ -314,12 +333,37 @@ df_reg$age2 <- df_reg$mager**2
 
 res <- lm(dbwt ~ .,
        data = df_reg)
-summary(res)
 ```
+
+<div align="center">
+```{r, results='asis'}
+stargazer::stargazer(res, type = "html")
+```
+</div>
 
 <br>
 
-En ajoutant la jumélité:
+En ajoutant l'année :
+
+<br>
+
+```{r}
+df_reg <- df %>% select(to_keep, dob_yy)
+df_reg$age2 <- df_reg$mager**2
+
+res <- lm(dbwt ~ .,
+       data = df_reg)
+```
+
+<div align="center">
+```{r, results='asis'}
+stargazer::stargazer(res, type = "html")
+```
+</div>
+
+<br>
+
+En ajoutant la gémélité:
 
 <br>
 
@@ -327,38 +371,45 @@ En ajoutant la jumélité:
 df_reg <- df %>% select(to_keep, dplural)
 MR3 <- lm(dbwt ~ .,
           data = df_reg)
-summary(MR3)
 ```
+
+<div align="center">
+```{r, results='asis'}
+stargazer::stargazer(MR3, type = "html")
+```
+</div>
 
 <br>
 
-Maintenant, si on regarde uniquement la population ayant recours au traitement :
+Avec la gémélité, l'année et l'age de la mere au carré:
 
 <br>
 
 ```{r}
-pop$age2 <-  pop$mager**2
-MR5 <- lm(dbwt ~ mager + meduc + mrace6 + age2 + fagerec11 + feduc + frace6 + priorlive + dmar + rf_artec + rf_fedrg, data=pop)
-summary(MR5)
+df_reg <- df %>% select(to_keep, dplural, dob_yy)
 
+MR4 <- lm(dbwt ~ .,
+          data = df_reg)
 ```
 
-<br>
-
-```{r}
-MR6 <- lm(dbwt~ mager + meduc + mrace6 + age2 + fagerec11 + feduc + frace6 + priorlive + dmar + dplural + rf_artec + rf_fedrg, data=pop)
-summary(MR6)
-
+<div align="center">
+```{r, results='asis'}
+stargazer::stargazer(MR4, type = "html")
 ```
+</div>
 
 <br>
-
 ### Corélation entre le recours à médicaments et la gémélité
 
 ```{r}
 gemelite <- lm(dplural ~ mager + rf_fedrg + rf_artec, data=df)
-summary(gemelite)
 ```
+
+<div align="center">
+```{r, results='asis'}
+stargazer::stargazer(gemelite, type = "html")
+```
+</div>
 
 <br>
 
