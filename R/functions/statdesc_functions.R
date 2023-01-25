@@ -118,7 +118,7 @@ transform_age <- function(df, agem = mager, agef = fagecomb){
   df %>% 
     dplyr::select({{agem}}) %>% 
     dplyr::mutate(sex = "F") %>% 
-    dplyr::rename(age = {{agem}}) %>% 
+    dplyr::rename(age = {{agem}}) %>%
     dplyr::bind_rows(
       df %>% 
         dplyr::select({{agef}}) %>% 
@@ -156,15 +156,17 @@ pyrage <- function(df,
   df %>% 
     ggplot2::ggplot() +
     ggplot2::aes(x = {{age}}, fill = {{sex}}) +
-    ggplot2::geom_bar(data = df %>% 
-               dplyr::filter({{sex}} == f),
-             mapping = aes(y = perc * (-1)),
-             stat = "identity"
+    ggplot2::geom_bar(
+      data = df %>% 
+        dplyr::filter({{sex}} == f),
+      mapping = aes(y = perc * (-1)),
+      stat = "identity"
     ) +
-    ggplot2::geom_bar(data = df %>% 
-               dplyr::filter({{sex}} == m),
-               mapping = aes(y = perc),
-               stat = "identity"
+    ggplot2::geom_bar(
+      data = df %>% 
+        dplyr::filter({{sex}} == m),
+      mapping = aes(y = perc),
+      stat = "identity"
     ) +
     ggplot2::scale_fill_manual(values = c("pink", "light blue")) +
     ggplot2::coord_flip() +

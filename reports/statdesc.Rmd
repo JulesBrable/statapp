@@ -80,10 +80,10 @@ df %>% dim()
 ### Population cible
 
 ```{r}
-pop <- df %>% filter(rf_inftr == "Y")
+pop <- df %>% filter(rf_fedrg == "Y")
 pop %>% dim()
 
-popnc <- df %>% filter(rf_inftr != "Y")
+popnc <- df %>% filter(rf_fedrg != "Y")
 ```
 
 <br>

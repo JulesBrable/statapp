@@ -4,9 +4,10 @@ library(tidyverse)
 
 load_data <- function(file, path = "data"){
   
-  tab2021 <- arrow::read_csv_arrow(
+  df <- arrow::read_csv_arrow(
     here::here(path, file)
   )
+  return(df)
 }
 
 # -------------------------------------------------------------------------
