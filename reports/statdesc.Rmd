@@ -330,8 +330,9 @@ Régression du poids à la naissance sur plusieurs variables explicatives (dont 
 
 ```{r}
 df_reg$age2 <- df_reg$mager**2
+df_reg$ldbwt <- df_reg$dbwt %>% log()
 
-res <- lm(dbwt ~ .,
+res <- lm(ldbwt ~ .,
        data = df_reg)
 ```
 
