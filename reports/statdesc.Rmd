@@ -12,7 +12,7 @@ output:
 knitr::opts_chunk$set(echo = T, error = F, warning = F, message = F) 
 ```
 
-### SETTING ENVIRONEMENT
+### DATA IMPORTATION
 
 ```{r}
 library(tidyverse)
@@ -27,6 +27,30 @@ pma <- c("Infertility Treatment Used",
          "Asst. Reproductive Technology")
 ```
 
+```{r}
+## wrangling data
+
+# removing "na"
+df <- df %>% 
+  filter(meduc != 9, fagerec11 != 11, frace6 != 9, feduc != 9, apgar5 != 5, priorlive != 99)
+
+# recoding mrace15 into mrace6 (properly)
+df <- df %>%
+  mutate(
+    mrace6 = case_when(
+      between(mrace15, 4, 10) ~ 4,
+      between(mrace15, 11, 14) ~ 5,
+      mrace15 == 15 ~ 6,
+      TRUE ~ as.numeric(mrace15)
+      ),
+    Group = case_when(
+      rf_inftr == "N" ~ "NT",
+      TRUE ~ "T")
+    )
+
+df %>% dim()
+```
+
 # STAT DESC
 
 <br>
@@ -38,12 +62,14 @@ Sur les `r df %>% nrow()` données de notre échantillon (2018 + 2019 + 2020 + 2
 ```{r echo=FALSE}
 df %>% 
   get_prop(rf_inftr) %>% 
-  bind_rows(df %>% 
-              get_prop(rf_fedrg)) %>% 
-  bind_rows(df %>% 
-              get_prop(rf_artec)) %>% 
-  mutate(var = pma) %>%
-  relocate(var) %>% 
+  full_join(df %>% 
+              get_prop(rf_fedrg),
+            by = c("rf_inftr" = "rf_fedrg")) %>% 
+  full_join(df %>% 
+              get_prop(rf_artec),
+            by = c("rf_inftr" = "rf_artec")) %>% 
+  replace(is.na(.), 0) %>% 
+  rename_all(function(x) c("Response", pma)) %>% 
   kableExtra::kbl() %>% 
   template()
 ```
@@ -54,25 +80,6 @@ df %>%
 df %>%
   transform_age() %>% 
   pyrage()
-  
-df %>%
-  get_prop(rf_artec) %>%
-  kableExtra::kbl() %>% 
-  template()
-
-df %>%
-  get_prop(rf_inftr) %>%
-  kableExtra::kbl() %>% 
-  template()
-```
-
-<br>
-
-```{r}
-df <- df %>% 
-  filter(meduc != 9, fagerec11 != 11, frace6 != 9, feduc != 9, apgar5 != 5, priorlive != 99)
-
-df %>% dim()
 ```
 
 <br>
@@ -84,35 +91,29 @@ pop <- df %>% filter(rf_fedrg == "Y")
 pop %>% dim()
 
 popnc <- df %>% filter(rf_fedrg != "Y")
+popnc %>% dim()
 ```
 
 <br>
 
-Parmi ceux qui ont eu recours à des traitements contre l'infertilité (ie, la population cible), voici la répartition du recours ou non à des traitements contre l'infertilité sous forme de médicaments ou insémination artificielle :
+Parmi ceux qui ont eu recours à des traitements contre l'infertilité, voici la répartition du recours ou non à des traitements contre l'infertilité sous forme de médicaments ou insémination artificielle ou sous forme d'assisted reproductive technology (ART) (IVF ou autres):
+ :
 
 <br>
 
 ```{r}
-pop %>% get_prop(rf_fedrg) %>%
+df %>% 
+  filter(rf_inftr == "Y") %>% 
+  get_prop(rf_fedrg) %>% 
+  full_join(df %>% 
+              filter(rf_inftr == "Y") %>% 
+              get_prop(rf_artec),
+            by = c("rf_fedrg" = "rf_artec")) %>% 
+  replace(is.na(.), 0) %>% 
+  rename_all(function(x) c("Response", pma[-1])) %>% 
   kableExtra::kbl() %>% 
   template()
 ```
-
-<br>
- 
-Et sous forme d'assisted reproductive technology (ART) (IVF ou autres):
-
-<br>
-
-```{r}
-pop %>% get_prop(rf_artec) %>%
-  kableExtra::kbl() %>% 
-  template()
-```
-
-<br>
- 
-Et sous forme d'assisted reproductive technology (ART) (IVF ou autres):
 
 <br>
 
@@ -144,8 +145,21 @@ pop %>%
 ```
 
 ```{r}
-pop %>%
-  get_prop(fagerec11) %>%
+fage <- data.frame(Age = c("< 15", "15-19", "20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-98"), code = as.factor(c(1:10)))
+
+fage %>% 
+  mutate(`Father's age (years)` = Age, .keep = "unused") %>% 
+  left_join(y = pop %>%
+              get_prop(fagerec11) %>%
+              data.frame(),
+            by = c("code" = "fagerec11")
+  ) %>% 
+  mutate(`Treated` =   replace_na(Frequency, 0), .keep = "unused") %>% 
+  left_join(y = popnc %>%
+              get_prop(fagerec11) %>%
+              data.frame() %>% 
+              rename(`Non-Treated` = Frequency),
+            by = c("code" = "fagerec11")) %>% 
   kableExtra::kbl() %>% 
   template()
 ```
@@ -153,8 +167,21 @@ pop %>%
 <br>
 
 ```{r}
-popnc %>%
-  get_prop(fagerec11) %>%
+mage <- data.frame(Age = c("< 15", "15-19", "20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54"), code = as.factor(c(1:9)))
+
+mage %>% 
+  mutate(`Mother's age (years)` = Age, .keep = "unused") %>% 
+  left_join(y = pop %>%
+              get_prop(mager9) %>%
+              data.frame(),
+            by = c("code" = "mager9")
+  ) %>% 
+  mutate(`Treated` =   replace_na(Frequency, 0), .keep = "unused") %>% 
+  left_join(y = popnc %>%
+              get_prop(mager9) %>%
+              data.frame() %>% 
+              rename(`Non-Treated` = Frequency),
+            by = c("code" = "mager9")) %>% 
   kableExtra::kbl() %>% 
   template()
 ```
@@ -182,20 +209,29 @@ Sur les non traités, l'âge médian des hommes est de `r popnc %>% transform_ag
 <br>
 
 ```{r}
-summary(pop %>% mutate(mrace6 = mrace6/10) %>% select(mrace6)) %>% 
-  bind_cols(summary(select(pop,frace6)))
+recode_labels <- c(
+  "1" = "White (only)",
+  "2" = "Black (only)",
+  "3" = "AIAN (only)",
+  "4" = "Asian (only)",
+  "5" = "NHOPI (only)",
+  "6" = "More than one race"
+  )
+quick_title <- "father's race"
 
-round(table(pop$frace6)/length(pop$frace6),3)
-round(table(pop$mrace15)/length(pop$mrace6),3)
-# taux similaires pour les mères
+df %>%
+  plot_discrete_group(var=frace6, recode_labels=recode_labels, quick_title=quick_title, x="Race") +
+  scale_x_discrete(guide = guide_axis(angle = 30))
 ```
 
+<br>
 
 ```{r}
-hist(pop$frace6, col = "cornflowerblue", xlab = "", main  = "ethnie du père (pop cible")
+quick_title <- "mother's race"
 
-hist(popnc$frace6, col = "cornflowerblue", xlab = "", main  = "ethnie du père (pop NT")
-
+df %>%
+  plot_discrete_group(var=mrace6, recode_labels=recode_labels, quick_title=quick_title, x="Race") +
+  scale_x_discrete(guide = guide_axis(angle = 30))
 ```
 
 <br>
@@ -204,42 +240,34 @@ hist(popnc$frace6, col = "cornflowerblue", xlab = "", main  = "ethnie du père (
 
 <br>
 
-Sur la population cible, on a :
-
-<br>
-
 ```{r}
-summary(select(pop,meduc))
-summary(select(pop,feduc))
+recode_labels <- c(
+  "1"="8th grade or less",
+  "2"="9th through 12th grade with no diploma",
+  "3"="High school graduate or GED completed",
+  "4"="Some college credit, but not a degree",
+  "5"="Associate degree (AA,AS)",
+  "6"="Bachelor’s degree (BA, AB, BS)",
+  "7"="Master’s degree (MA, MS, MEng, MEd, MSW, MBA)",
+  "8"="Doctorate (PhD, EdD) or Professional Degree (MD, DDS, DVM, LLB, JD)"
+  )
+quick_title <- "mother's education"
+
+df %>%
+  plot_discrete_group(var=meduc, recode_labels=recode_labels, quick_title=quick_title, x="Education") +
+  guides(fill = guide_legend(reverse=TRUE)) +
+  coord_flip()
 ```
 
 <br>
 
 ```{r}
-round(table(pop$meduc)/length(pop$meduc),3)
-round(table(pop$feduc)/length(pop$feduc),3)
-```
+quick_title <- "father's education"
 
-
-Alors que sur la population entière on obtient :
-
-```{r}
-summary(select(popnc,meduc))
-summary(select(popnc,feduc))
-```
-
-<br>
-
-```{r}
-round(table(popnc$meduc)/length(popnc$meduc),3)
-round(table(popnc$feduc)/length(popnc$feduc),3)
-```
-
-<br>
-
-```{r}
-hist(pop$feduc, col = "cornflowerblue", xlab = "", main  = "niveau d'éducation du père (pop cible)")
-hist(pop$meduc, col = "cornflowerblue", xlab = "", main  = "niveau d'éducation de la mère (pop cible)")
+df %>%
+  plot_discrete_group(var=feduc, recode_labels=recode_labels, quick_title=quick_title, x="Education") +
+  guides(fill = guide_legend(reverse=TRUE)) +
+  coord_flip()
 ```
 
 <br>
@@ -249,32 +277,41 @@ hist(pop$meduc, col = "cornflowerblue", xlab = "", main  = "niveau d'éducation 
 <br>
 
 ```{r}
-summary(select(pop,dmar))
-summary(select(pop,priorlive))
-summary(select(pop,dplural))
-round(table(pop$dmar)/length(pop$dmar),3)
-round(table(pop$priorlive)/length(pop$priorlive),3)
-round(table(pop$dplural)/length(pop$dplural),3)
+df %>% 
+  mutate(`Marital status` = recode(dmar, "1"="Married", "2"="Unmarried")) %>% 
+  group_freq(`Marital status`, "Marital status")
 ```
-
-```{r}
-hist(pop$priorlive, col = "cornflowerblue", xlab = "", main  = "nombre d'enfants")
-box()
-```
-`
-<br>
-
-Sur la population entière: 
 
 <br>
 
 ```{r}
-summary(select(popnc,dmar))
-summary(select(popnc,priorlive))
-summary(select(popnc,dplural))
-round(table(popnc$dmar)/length(popnc$dmar),3)
-round(table(popnc$priorlive)/length(popnc$priorlive),3)
-round(table(popnc$dplural)/length(popnc$dplural),3)
+df %>%
+  mutate(priorlive = case_when(
+    as.numeric(priorlive) >= 4 ~ "4+",
+    TRUE ~ as.character(priorlive)
+    )) %>% 
+  group_freq(priorlive, "Prior live")
+```
+<br>
+
+QUESTION : doit-on recoder ainsi la variable "priorlive"? Sinon, va jusqu'à 20 mais avec des effectifs très faibles.
+
+<br>
+
+```{r}
+df %>% grouped_summary(priorlive, "prior live")
+```
+
+<br>
+
+```{r}
+df %>% group_freq(dplural, "Twinning")
+```
+
+<br>
+
+```{r}
+df %>% grouped_summary(dplural, "twinning")
 ```
 
 <br>
@@ -284,31 +321,56 @@ round(table(popnc$dplural)/length(popnc$dplural),3)
 <br>
 
 ```{r}
-summary(select(pop,apgar5r))
-summary(select(pop,dbwt))
+df %>% group_freq(apgar5r, "Score Apgar 5")
 ```
 
 ```{r}
-hist(pop$apgar5r, col = "cornflowerblue", xlab = "", main  = "Score Apgar")
+df %>% filter(apgar5 != 99) %>% grouped_summary(apgar5, "Score Apgar 5")
+```
+
+<br>
+
+```{r}
+df %>% filter(dbwt != 9999) %>% grouped_summary(dbwt, "birth weight")
 ```
 
 
 ```{r}
-plot(density(pop$dbwt), lwd = 2, col = "orange", xlab = "", main = "poids à la naissance")
-```
+df %>% 
+  filter(rf_inftr == "Y" | rf_inftr == "N", apgar5 != 99) %>%
+  
+  # summarizing the variable to get the percentage by group
+  
+  group_by(rf_inftr, apgar5) %>%
+  summarise(n = n()) %>%
+  mutate(freq = n * 100 / sum(n)) %>% 
+  
+  # plot the 2 distributions (treated and NT) of the variable
+  ggplot(mapping = aes(x = as.factor(apgar5), y = freq, fill = factor(rf_inftr))) +
+  geom_bar(color = "grey30",
+           alpha = 0.7,
+           position = "dodge",
+           stat = "identity") +
+  scale_fill_discrete(name = "Group", labels = c("Non-Treated", "Treated")) +
+  labs(title = glue::glue("Distribution of apgar score 5 by group"), x = "Score", y = "Frequency") + 
+  theme_formatted()
 
-Sur la population entière :
+df %>% plot_discrete_group(apgar5)
+```
+<br>
 
 ```{r}
-summary(select(popnc,apgar5r))
-summary(select(popnc,dbwt))
-```
-
-```{r}
-hist(popnc$apgar5r, col = "cornflowerblue", xlab = "", main  = "Score Apgar")
-```
-```{r}
-plot(density(popnc$dbwt), lwd = 2, col = "orange", xlab = "", main = "poids à la naissance")
+title <- glue::glue("Histogram chart of birthweight")
+  
+caption <- df %>% create_caption(var = "dbwt", nan = 9999)
+  
+df %>% 
+  dplyr::filter(dbwt != 9999) %>% 
+  ggplot2::ggplot(mapping = aes(x = dbwt, fill = rf_inftr)) +
+  ggplot2::geom_density(color = "grey30", alpha = 0.6) +
+  ggplot2::labs(title = title, x = "Birthweight", caption = caption) +
+  scale_fill_discrete(name = "Group", labels = c("Non-Treated", "Treated")) +
+  theme_formatted()
 ```
 
 <br>

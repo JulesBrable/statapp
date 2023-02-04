@@ -12,12 +12,16 @@ template <- function(kble){
 
 # ---------------------------------------------------------------------
 
-var_summary <- function(df, var, nan = "none", ...){
-  
-  title <- glue::glue(
+make_title_summary <- function(var){
+  glue::glue(
     "<i>Statistical summary of
     <span style='color: darkred'>{glue::glue_collapse(var,  sep = ', ')}</span>:</i>"
   )
+}
+# ---------------------------------------------------------------------
+var_summary <- function(df, var, nan = "none", ...){
+  
+  title <- make_title_summary(var)
   
   kableExtra::kbl(df %>%
                     dplyr::select(any_of(var)) %>% 
@@ -41,8 +45,9 @@ get_prop <- function(df, col, round_perc = 3){
   df %>% 
     select({{col}}) %>% 
     table() %>% 
-    prop.table() %>% 
-    round(round_perc)
+    prop.table() %>%
+    data.frame() %>% 
+    mutate(`Frequency` = round(Freq*100, round_perc), .keep = "unused")
 }
 
 # -------------------------------------------------------------------------
@@ -175,4 +180,62 @@ pyrage <- function(df,
     theme_formatted()
 }
 
+# -------------------------------------------------------------------------
 
+plot_discrete_group <- function(df, var, quick_title, x, recode_labels, treatment=rf_fedrg){
+  
+  df %>% 
+    
+    filter({{treatment}} == "Y" | {{treatment}} == "N") %>%
+    
+    # recoding the categorical variable by more readable values
+    mutate(new_var = recode(
+      factor({{var}}),
+      !!!recode_labels
+    )) %>% 
+    
+    # summarizing the variable to get the percentage by group
+    group_by({{treatment}}, new_var) %>%
+    summarise(n = n()) %>%
+    mutate(freq = n * 100 / sum(n)) %>% 
+    
+    # plot the 2 distributions (treated and NT) of the variable
+    ggplot(mapping = aes(x = new_var, y = freq, fill = factor({{treatment}}))) +
+    geom_bar(color = "grey30",
+             alpha = 0.7,
+             position = "dodge",
+             stat = "identity") +
+    scale_fill_discrete(name = "Group", labels = c("Non-Treated", "Treated")) + 
+    labs(title = glue::glue("Distribution of {quick_title} by group"), x = x, y = "Frequency") + 
+    theme_formatted()
+  
+}
+
+# -------------------------------------------------------------------------
+
+group_freq <- function(df, var, new_var, group = Group){
+  df %>% 
+    mutate(!!sym(new_var) := {{var}}) %>% 
+    group_by({{group}}) %>% 
+    count(!!sym(new_var)) %>% 
+    mutate(freq = round(n * 100 / sum(n), 3), .keep = "unused") %>% 
+    kableExtra::kbl() %>% 
+    template()
+}
+
+# -------------------------------------------------------------------------
+
+grouped_summary <- function(df, var, x, group=Group){
+  
+  df %>% 
+    group_by({{group}}) %>% 
+    summarize(psych::describe({{var}}, quant = c(.25,.75))) %>% 
+    dplyr::mutate(IQR = Q0.75 - Q0.25) %>%
+    dplyr::select({{group}}, min, max, mean, sd, IQR) %>%
+    dplyr::mutate(across(where(is.numeric), round, 2)) %>% 
+    kableExtra::kbl(
+      caption = make_title_summary(x),
+      booktabs = T,
+      linesep = "") %>% 
+    template()
+}

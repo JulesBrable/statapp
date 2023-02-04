@@ -13,7 +13,7 @@ load_data <- function(file, path = "data"){
 # -------------------------------------------------------------------------
 
 sample_df <- function(file, n, segment_treat = TRUE, path = "data",
-                      col_to_segment = rf_inftr, remove = NULL){
+                      col_to_segment = rf_fedrg, remove = NULL){
   
   # Sample rows of data without replacement #
   
