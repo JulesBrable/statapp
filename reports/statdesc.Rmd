@@ -1,5 +1,5 @@
 ---
-title: "sampling"
+title: "Report"
 author: "Jules Brable"
 date: "`r Sys.Date()`"
 output:
@@ -79,7 +79,7 @@ df %>%
 ```{r}
 df %>%
   transform_age() %>% 
-  pyrage()
+  pyrage(title="Age Pyramid (overall population)")
 ```
 
 <br>
@@ -141,8 +141,18 @@ popnc %>%
 ```{r}
 pop %>%
   transform_age() %>% 
-  pyrage()
+  pyrage(title="Age Pyramid (Treated)")
 ```
+
+<br>
+
+```{r}
+popnc %>%
+  transform_age() %>% 
+  pyrage(title="Age Pyramid (Non-Treated)")
+```
+
+<br>
 
 ```{r}
 fage <- data.frame(Age = c("< 15", "15-19", "20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-98"), code = as.factor(c(1:10)))
@@ -220,7 +230,15 @@ recode_labels <- c(
 quick_title <- "father's race"
 
 df %>%
-  plot_discrete_group(var=frace6, recode_labels=recode_labels, quick_title=quick_title, x="Race") +
+  mutate(frace6 = recode(
+    factor(frace6),
+    !!!recode_labels
+    )) %>% 
+  plot_discrete_group(
+    var=frace6,
+    quick_title=quick_title,
+    x="Race"
+    ) +
   scale_x_discrete(guide = guide_axis(angle = 30))
 ```
 
@@ -230,7 +248,12 @@ df %>%
 quick_title <- "mother's race"
 
 df %>%
-  plot_discrete_group(var=mrace6, recode_labels=recode_labels, quick_title=quick_title, x="Race") +
+    mutate(mrace6 = recode(factor(mrace6), !!!recode_labels)) %>% 
+  plot_discrete_group(
+    var=mrace6,
+    quick_title=quick_title,
+    x="Race"
+    ) +
   scale_x_discrete(guide = guide_axis(angle = 30))
 ```
 
@@ -254,7 +277,12 @@ recode_labels <- c(
 quick_title <- "mother's education"
 
 df %>%
-  plot_discrete_group(var=meduc, recode_labels=recode_labels, quick_title=quick_title, x="Education") +
+  mutate(meduc = recode(factor(meduc), !!!recode_labels)) %>% 
+  plot_discrete_group(
+    var=meduc,
+    quick_title=quick_title,
+    x="Education"
+    ) +
   guides(fill = guide_legend(reverse=TRUE)) +
   coord_flip()
 ```
@@ -265,7 +293,12 @@ df %>%
 quick_title <- "father's education"
 
 df %>%
-  plot_discrete_group(var=feduc, recode_labels=recode_labels, quick_title=quick_title, x="Education") +
+  mutate(feduc = recode(factor(feduc), !!!recode_labels)) %>% 
+  plot_discrete_group(
+    var=feduc,
+    quick_title=quick_title,
+    x="Education"
+    ) +
   guides(fill = guide_legend(reverse=TRUE)) +
   coord_flip()
 ```
@@ -292,6 +325,7 @@ df %>%
     )) %>% 
   group_freq(priorlive, "Prior live")
 ```
+
 <br>
 
 QUESTION : doit-on recoder ainsi la variable "priorlive"? Sinon, va jusqu'à 20 mais avec des effectifs très faibles.
@@ -354,9 +388,8 @@ df %>%
   scale_fill_discrete(name = "Group", labels = c("Non-Treated", "Treated")) +
   labs(title = glue::glue("Distribution of apgar score 5 by group"), x = "Score", y = "Frequency") + 
   theme_formatted()
-
-df %>% plot_discrete_group(apgar5)
 ```
+
 <br>
 
 ```{r}

@@ -135,12 +135,12 @@ transform_age <- function(df, agem = mager, agef = fagecomb){
 # -------------------------------------------------------------------------
 
 pyrage <- function(df,
+                   title,
                    age = age,
                    sex = sex,
                    n = n,
                    f = "F",
                    m = "M",
-                   title = "Age pyramid",
                    x = "Age",
                    y = "Percentage"){
   
@@ -188,19 +188,13 @@ plot_discrete_group <- function(df, var, quick_title, x, recode_labels, treatmen
     
     filter({{treatment}} == "Y" | {{treatment}} == "N") %>%
     
-    # recoding the categorical variable by more readable values
-    mutate(new_var = recode(
-      factor({{var}}),
-      !!!recode_labels
-    )) %>% 
-    
     # summarizing the variable to get the percentage by group
-    group_by({{treatment}}, new_var) %>%
+    group_by({{treatment}}, {{var}}) %>%
     summarise(n = n()) %>%
     mutate(freq = n * 100 / sum(n)) %>% 
     
     # plot the 2 distributions (treated and NT) of the variable
-    ggplot(mapping = aes(x = new_var, y = freq, fill = factor({{treatment}}))) +
+    ggplot(mapping = aes(x = {{var}}, y = freq, fill = factor({{treatment}}))) +
     geom_bar(color = "grey30",
              alpha = 0.7,
              position = "dodge",
