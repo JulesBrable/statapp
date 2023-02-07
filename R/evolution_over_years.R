@@ -8,27 +8,34 @@ nb_years <- 4
 res <- data.frame(
   matrix(
     nrow = nb_years,
-    ncol = 2,
-    dimnames = list(NULL, c("Year", "perc_T"))
+    ncol = 3,
+    dimnames = list(NULL, c("Year", "count", "frequency"))
     )
   )
 
 # from 2018 to 2021:
 # - load the dataset
-# - get the proportion of treated
+# - get the count and proportion of treated
 for (i in seq(18, 21)) {
   
   res[i-17, 1] <- glue::glue("20{i}")
 
-  res[i-17, 2] <- load_data(glue::glue("nat20{i}us.csv")) %>% 
+  res0 <- load_data(glue::glue("nat20{i}us.csv")) %>% 
     group_by(rf_inftr) %>% 
     count() %>% 
     ungroup() %>% 
     mutate(freq = n * 100 / sum(n)) %>% 
-    filter(rf_inftr == "Y") %>% 
-    pull(freq) %>%
+    filter(rf_inftr == "Y")
+    
+  
+  res[i-17, 2] <- res0 %>% 
+    pull(n) %>%
     round(2)
   
+  res[i-17, 3] <- res0 %>% 
+    pull(freq) %>%
+    round(2)
+
 }
 
 # convert year to date
