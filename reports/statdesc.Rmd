@@ -550,6 +550,7 @@ df_reg_ohe <- dummy_cols(df_reg, select_columns =  c("feduc","meduc","mrace6","f
 # Removing initial columns 
 df_reg_ohe$feduc <- NULL
 df_reg_ohe$Meduc <- NULL
+df_reg_ohe$meduc <- NULL
 df_reg_ohe$frace6 <- NULL
 df_reg_ohe$mrace6 <- NULL
 df_reg_ohe$fagerec11 <- NULL
