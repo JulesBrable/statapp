@@ -27,6 +27,35 @@ pma <- c("Infertility Treatment Used",
          "Asst. Reproductive Technology")
 ```
 
+<br>
+
+Remarque préalable : "Infertility Treatment Used" (évènement A) est la réunion (au sens probabiliste) de "Fertility Enhancing Drugs" (évènement B1) et "Asst. Reproductive Technology" (évènement B2). En effet, P(A) = P(B1) + P(B2) - P(B1,B2) et P(A|B1<sup>c</sup>, B2<sup>c</sup>) = 0 :
+
+<br>
+
+```{r}
+df2021 <- load_data("nat2021us.csv")
+
+df2021 %>% 
+  filter(rf_inftr == "Y") %>% 
+  nrow()
+
+df2021 %>% 
+  filter(rf_fedrg == "Y") %>% 
+  nrow()
+
+df2021 %>% 
+  filter(rf_artec == "Y") %>% 
+  nrow()
+
+df2021 %>% 
+  filter(rf_inftr == "Y", rf_fedrg == "N", rf_artec == "N") %>% 
+  nrow()
+
+rm(df2021)
+```
+
+
 ```{r}
 ## wrangling data
 

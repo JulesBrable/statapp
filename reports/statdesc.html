@@ -11,7 +11,7 @@
 
 <meta name="author" content="Jules Brable" />
 
-<meta name="date" content="2023-02-04" />
+<meta name="date" content="2023-02-06" />
 
 <title>Report</title>
 
@@ -1860,7 +1860,7 @@ pre code {
 
 <h1 class="title toc-ignore">Report</h1>
 <h4 class="author">Jules Brable</h4>
-<h4 class="date">2023-02-04</h4>
+<h4 class="date">2023-02-06</h4>
 
 </div>
 
@@ -1877,6 +1877,30 @@ df &lt;- load_data(&quot;data.csv&quot;)
 pma &lt;- c(&quot;Infertility Treatment Used&quot;,
          &quot;Fertility Enhancing Drugs&quot;,
          &quot;Asst. Reproductive Technology&quot;)</code></pre>
+<p>Remarque préalable : “Infertility Treatment Used” (évènement A) est
+la réunion (au sens probabiliste) de “Fertility Enhancing Drugs”
+(évènement B1) et “Asst. Reproductive Technology” (évènement B2). En
+effet, P(A) = P(B1) + P(B2) et P(A|B<sup>c</sup>, B2<sup>c</sup>) =
+0:</p>
+<pre class="r"><code>df2021 &lt;- load_data(&quot;nat2021us.csv&quot;)
+
+df2021 %&gt;% 
+  filter(rf_inftr == &quot;Y&quot;) %&gt;% 
+  nrow()</code></pre>
+<pre><code>## [1] 80705</code></pre>
+<pre class="r"><code>df2021 %&gt;% 
+  filter(rf_fedrg == &quot;Y&quot;) %&gt;% 
+  nrow()</code></pre>
+<pre><code>## [1] 29012</code></pre>
+<pre class="r"><code>df2021 %&gt;% 
+  filter(rf_artec == &quot;Y&quot;) %&gt;% 
+  nrow()</code></pre>
+<pre><code>## [1] 55102</code></pre>
+<pre class="r"><code>df2021 %&gt;% 
+  filter(rf_inftr == &quot;Y&quot;, rf_fedrg == &quot;N&quot;, rf_artec == &quot;N&quot;) %&gt;% 
+  nrow()</code></pre>
+<pre><code>## [1] 0</code></pre>
+<pre class="r"><code>rm(df2021)</code></pre>
 <pre class="r"><code>## wrangling data
 
 # removing &quot;na&quot;
