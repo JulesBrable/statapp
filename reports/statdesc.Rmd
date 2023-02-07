@@ -34,25 +34,25 @@ Remarque préalable : "Infertility Treatment Used" (évènement A) est la réuni
 <br>
 
 ```{r}
-df2021 <- load_data("nat2021us.csv")
+#df2021 <- load_data("nat2021us.csv")
 
-df2021 %>% 
-  filter(rf_inftr == "Y") %>% 
-  nrow()
+#df2021 %>% 
+  #filter(rf_inftr == "Y") %>% 
+  #nrow()
 
-df2021 %>% 
-  filter(rf_fedrg == "Y") %>% 
-  nrow()
+#df2021 %>% 
+  #filter(rf_fedrg == "Y") %>% 
+  #nrow()
 
-df2021 %>% 
-  filter(rf_artec == "Y") %>% 
-  nrow()
+#df2021 %>% 
+  #filter(rf_artec == "Y") %>% 
+  #nrow()
 
-df2021 %>% 
-  filter(rf_inftr == "Y", rf_fedrg == "N", rf_artec == "N") %>% 
-  nrow()
+#df2021 %>% 
+  #filter(rf_inftr == "Y", rf_fedrg == "N", rf_artec == "N") %>% 
+  #nrow()
 
-rm(df2021)
+#rm(df2021)
 ```
 
 
@@ -537,5 +537,36 @@ stargazer::stargazer(gemelite, type = "html")
 </div>
 
 <br>
-
+??
 Reste à faire des tests d'indépendance (Khi2/KS/Student)
+
+```{r}
+# Loading the library 
+library(fastDummies)
+
+#Create dummy variable 
+df_reg_ohe <- dummy_cols(df_reg, select_columns =  c("feduc","meduc","mrace6","frace6","fagerec11","dob_yy"), remove_first_dummy = TRUE)
+
+# Removing initial columns 
+df_reg_ohe$feduc <- NULL
+df_reg_ohe$Meduc <- NULL
+df_reg_ohe$frace6 <- NULL
+df_reg_ohe$mrace6 <- NULL
+df_reg_ohe$fagerec11 <- NULL
+df_reg_ohe$dob_yy <- NULL
+
+#Linear regression of ldbwt on ohe variables 
+
+res_ohe <- lm(ldbwt ~ .,
+          data = df_reg_ohe)
+summary(res_ohe)
+
+#df %>% select(dob_yy) %>% distinct()
+
+```
+
+```{r, results='asis'}
+stargazer::stargazer(res_ohe, type = "html")
+```
+
+

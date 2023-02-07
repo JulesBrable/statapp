@@ -7,7 +7,7 @@ template <- function(kble){
   
   kble %>% 
     kableExtra::row_spec(0, bold = T) %>% 
-    kableExtra::kable_classic(full_width = F, html_font = "Cambria")
+    kableExtra::kable_classic(full_width = F, html_font = "Arial")
 }
 
 # ---------------------------------------------------------------------
@@ -52,7 +52,7 @@ get_prop <- function(df, col, round_perc = 3){
 
 # -------------------------------------------------------------------------
 
-theme_formatted <- function(font = "Cambria"){
+theme_formatted <- function(font = "Arial"){
   
   # Create a formatted theme for ggplot2 plots that we will produce
   # e.g., it allows to have the same font (Cambria by default) and size etc
