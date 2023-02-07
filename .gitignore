@@ -39,5 +39,5 @@ vignettes/*.pdf
 .Renviron
 
 # others
-.DS_Store
-.csv
+*.DS_Store
+*.csv
