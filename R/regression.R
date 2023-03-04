@@ -4,7 +4,8 @@ source(here::here("R/functions/statdesc_functions.R"))
 source(here::here("R/functions/sampling_functions.R"))
 
 to_keep <- c("dbwt", "mager", "meduc", "fagecomb", "feduc", "frace6", "mrace15",
-             "priorlive", "rf_artec", "dmar", "cig_rec", "mhisp_r", "fhispx")
+             "priorlive", "rf_artec", "dmar", "cig_rec", "mhisp_r", "fhispx",
+             "no_infec", "sex", "gestrec3")
 
 df <- load_data("nat2021us.csv") %>%
   select(all_of(to_keep))
@@ -17,7 +18,8 @@ df <- df %>%
     between(mrace15, 11, 14) ~ 5,
     mrace15 == 15 ~ 6,
     TRUE ~ as.numeric(mrace15)
-    ))
+    )) %>% 
+  select(!mrace15)
 
 # check des valeurs manquantes
 df %>%
@@ -49,8 +51,10 @@ df %>%
       mhisp_r == 9 |
       fhispx == 9 |
       cig_rec == "U" |
-      dmar == 9) %>% 
-  nrow()
+      dmar == 9 |
+      no_infec == 9 |
+      gestrec3 == 3) %>% 
+  count(rf_artec)
 
 df %>% nrow()
 
@@ -66,7 +70,9 @@ df <- df %>%
          mhisp_r != 9,
          fhispx != 9,
          cig_rec != "U",
-         dmar != 9)
+         dmar != 9,
+         no_infec != 9,
+         gestrec3 != 3)
 
 df %>% nrow()
 
@@ -108,10 +114,18 @@ df <- df %>% piecewise_linear_function(mager, tres_mage, "mage")
 df <- df %>% piecewise_linear_function(fagecomb, tres_fage, "fage")
 
 # to check if it worked :
-#df %>% select(starts_with("mage"))
-#df %>% select(starts_with("fage"))
+df %>% select(starts_with("mage"))
+df %>% select(starts_with("fage"))
 
 ## one hot encoding
+
+# recoding sex of the newborn, infection and period of gestation
+df$sex_M <-  ifelse(df$sex == "M" , 1, 0)
+df$infection <- ifelse(df$no_infec == 0 , 1, 0)
+df$gest_under_37_weeks <- ifelse(df$gestrec3 == 1 , 1, 0) 
+
+# then we have to remove the original variables
+df <- df %>% select(!all_of(c("sex", "no_infec", "gestrec3")))
 
 # mother's and fathers's hispanic origin
 # 0 = non hispanic, 1 = hispanic origin 
@@ -122,6 +136,9 @@ df$fhispx <- ifelse(df$fhispx != 0 , 1, 0)
 # recoding cigarette consumption from Y & N to 1 & 0 :
 df %>% select(cig_rec) %>% distinct()
 df$cig_rec <- ifelse(df$cig_rec == "Y", 1, 0)
+
+# recoding rf_artec as follows :  X, U, N -> 0 & Y -> 1
+df$rf_artec <- ifelse(df$rf_artec == "Y", 1, 0)
 
 # OHE for education and race for both mother & father
 # NB : we creat the dummy by removing the most frequent label
@@ -134,13 +151,14 @@ df <- df %>%
 # au final, les references prises sont :
 # meduc_6 (bachelor), feduc_3 (high school graduated),
 
-
+# ensuite on enlève les variables recodées en one-hot
+# puis on renome les modalites pour plus de lisibilite
 df_reg1 <- df %>% 
   select(!all_of(ohe1)) %>% 
   rename(c(
     "meduc_less_hs" = "meduc_1",
     "meduc_hs_nodiploma" = "meduc_2",
-    "meduc_hs_graduated" = "meduc_3",
+    "meduc_hs_diploma" = "meduc_3",
     "meduc_no_degree" = "meduc_4",
     "meduc_associate_degree" = "meduc_5",
     "meduc_master" = "meduc_7",
@@ -161,13 +179,11 @@ df_reg1 <- df %>%
     "frace_aian" = "frace6_3", 
     "frace_asian" = "frace6_4",
     "frace_nhopi" = "frace6_5",
-    "frace_more_than_one_race" = "frace6_6"
+    "frace_more_than_one_race" = "frace6_6",
     ))
 
 reg <- lm(ldbwt ~ .,
           data = df_reg1)
 
 summary(reg)
-
-
 
