@@ -4,7 +4,7 @@ source(here::here("R/functions/statdesc_functions.R"))
 source(here::here("R/functions/sampling_functions.R"))
 
 to_keep <- c("dbwt", "mager", "meduc", "fagecomb", "feduc", "frace6", "mrace15",
-             "priorlive", "rf_artec", "dmar", "cig_rec", "mhisp_r", "fhispx",
+             "rf_artec", "priorlive", "dmar", "cig_rec", "mhisp_r", "fhispx",
              "no_infec", "sex", "gestrec3")
 
 df <- load_data("nat2021us.csv") %>%
@@ -117,6 +117,9 @@ df <- df %>% piecewise_linear_function(fagecomb, tres_fage, "fage")
 df %>% select(starts_with("mage"))
 df %>% select(starts_with("fage"))
 
+# finally remove mager and fagecomb
+df <- df %>% select(!all_of(c("mager", "fagecomb")))
+
 ## one hot encoding
 
 # recoding sex of the newborn, infection and period of gestation
@@ -186,4 +189,13 @@ reg <- lm(ldbwt ~ .,
           data = df_reg1)
 
 summary(reg)
+
+stargazer::stargazer(reg, type = "html", out = "reports/reg_06_03.html")
+
+
+
+
+
+
+
 
