@@ -4,7 +4,7 @@ source(here::here("R/functions/statdesc_functions.R"))
 source(here::here("R/functions/sampling_functions.R"))
 
 to_keep <- c("dbwt", "mager", "meduc", "fagecomb", "feduc", "frace6", "mrace15",
-             "rf_artec", "priorlive", "dmar", "cig_rec", "mhisp_r", "fhispx",
+             "rf_fedrg", "priorlive", "dmar", "cig_rec", "mhisp_r", "fhispx",
              "no_infec", "sex", "gestrec3")
 
 df <- load_data("nat2021us.csv") %>%
@@ -54,7 +54,7 @@ df %>%
       dmar == 9 |
       no_infec == 9 |
       gestrec3 == 3) %>% 
-  count(rf_artec)
+  count(rf_fedrg)
 
 df %>% nrow()
 
@@ -140,8 +140,8 @@ df$fhispx <- ifelse(df$fhispx != 0 , 1, 0)
 df %>% select(cig_rec) %>% distinct()
 df$cig_rec <- ifelse(df$cig_rec == "Y", 1, 0)
 
-# recoding rf_artec as follows :  X, U, N -> 0 & Y -> 1
-df$rf_artec <- ifelse(df$rf_artec == "Y", 1, 0)
+# recoding rf_fedrg as follows :  X, U, N -> 0 & Y -> 1
+df$rf_fedrg <- ifelse(df$rf_fedrg == "Y", 1, 0)
 
 # OHE for education and race for both mother & father
 # NB : we creat the dummy by removing the most frequent label
