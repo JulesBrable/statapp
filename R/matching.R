@@ -1,5 +1,5 @@
 
-#setting environment
+#-----------------------setting environment-------------------------------------
 rm(list = ls())
 
 library(data.table)
@@ -11,7 +11,9 @@ install.packages("devtools")
 library(devtools)
 install_github("https://github.com/IQSS/cem.git")
 
-#loading dataset
+library(MatchIt)
+
+#----------------------------loading dataset------------------------------------
 source("R/functions/sampling_functions.R")
 
 path <- "Data"
@@ -20,19 +22,151 @@ file <- "data.csv"
 
 
 to_keep <- c("dbwt", "mager", "meduc", "fagecomb", "feduc", "frace6", "mrace15",
-             "rf_artec", "priorlive", "dmar", "cig_rec", "mhisp_r", "fhispx",
-             "no_infec", "sex", "gestrec3")
+             "rf_fedrg", "priorlive", "dmar", "cig_rec", "mhisp_r", "fhispx",
+             "no_infec", "sex", "gestrec3", "dplural")
 
 df <- load_data(file)%>%
   select(all_of(to_keep))
 
-# recoding rf_artec as follows :  X, U, N -> 0 & Y -> 1
-df$rf_artec <- ifelse(df$rf_artec == "Y", 1, 0)
 
-#matching
+#------------------------ nettoyage des données (comme dans les régressions)----
+# pour mrace6, les labels sont mal codes, donc :
+# recoding mrace15 into mrace6 (correctly)
+df <- df %>%
+  mutate(mrace6 = case_when(
+    between(mrace15, 4, 10) ~ 4,
+    between(mrace15, 11, 14) ~ 5,
+    mrace15 == 15 ~ 6,
+    TRUE ~ as.numeric(mrace15)
+  )) %>% 
+  select(!mrace15)
 
-mat <- cem(treatment= "rf_artec", data=df)   
-mat
+# on recode dmar comme dans la régression
+df <- df %>%
+  mutate(dmar = case_when(
+    dmar == 1 ~ 1,
+    is.na(dmar) ~ 9,
+    TRUE ~ 0))
 
-#résultats:
+# recoding rf_fedrg as follows :  X, U, N -> 0 & Y -> 1
+df$rf_fedrg <- ifelse(df$rf_fedrg == "Y", 1, 0)
+
+#on supprime les valeurs unknown
+df <- df %>% 
+  filter(fagecomb != 99,
+         meduc != 9,
+         dbwt != 9999,
+         feduc != 9,
+         frace6 != 9,
+         mrace6 != 9,
+         priorlive != 99,
+         mhisp_r != 9,
+         fhispx != 9,
+         cig_rec != "U",
+         dmar != 9,
+         no_infec != 9,
+         gestrec3 != 3)
+
+# recoding cigarette consumption from Y & N to 1 & 0 :
+df %>% select(cig_rec) %>% distinct()
+df$cig_rec <- ifelse(df$cig_rec == "Y", 1, 0)
+
+#recoding sex
+df$sex_M <-  ifelse(df$sex == "M" , 1, 0)
+df <- df %>% select(!all_of(c("sex")))
+
+#-------------------------------matching : cem----------------------------------
+#on fait le matching
+mat <- cem(treatment= "rf_fedrg", data=df)   
+mat #affiche le nombre de matchs
+
+
+#avec un match k2k
+matk2k <- cem(treatment= "rf_fedrg", data=df, k2k=TRUE)  
+matk2k
+
+#----------------------------- matching : cem avec MatchIt----------------------
+m <- matchit(rf_fedrg ~ dbwt + mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+        priorlive + dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + gestrec3,
+        data = df,
+        method = "cem",
+        estimand = "ATT") 
+
+summary(m) 
+
+#on plot les distributions
+plot(m, type = "density", interactive = FALSE)
+
+
+
+#avec un match k2k (essai avec la distance par défaut = Mahalanobis)
+mk2k <- matchit(rf_fedrg ~ dbwt + mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+               priorlive + dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + gestrec3,
+             data = df,
+             method = "cem",
+             estimand = "ATT",
+             k2k = TRUE) 
+
+summary(mk2k)
+
+plot(mk2k, type = "density", interactive = FALSE)
+
+#----------------------matching JUMEAUX: cem avec MatchIt-----------------------
+#on filtre la présence de naissances plural
+dfJ <- df %>% filter(dplural != 1)
+
+m_J <- matchit(rf_fedrg ~ dbwt + mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+               priorlive + dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + gestrec3 + dplural,
+             data = dfJ,
+             method = "cem",
+             estimand = "ATT") 
+
+summary(m_J) 
+
+#on plot les distributions
+plot(m_J, type = "density", interactive = FALSE)
+
+
+
+#avec un match k2k (essai avec la distance par défaut = Mahalanobis)
+mk2k_J <- matchit(rf_fedrg ~ dbwt + mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                  priorlive + dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + gestrec3 + dplural,
+                data = dfJ,
+                method = "cem",
+                estimand = "ATT",
+                k2k = TRUE) 
+
+summary(mk2k_J)
+
+plot(mk2k_J, type = "density", interactive = FALSE)
+
+
+#----------------------matching SINGLE : cem avec MatchIt-----------------------
+#on filtre la présence de naissances single
+dfS <- df %>% filter(dplural == 1)
+
+m_S <- matchit(rf_fedrg ~ dbwt + mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                priorlive + dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + gestrec3,
+              data = df,
+              method = "cem",
+              estimand = "ATT") 
+
+summary(m_S) 
+
+#on plot les distributions
+plot(m_S, type = "density", interactive = FALSE)
+
+
+
+#avec un match k2k (essai avec la distance par défaut = Mahalanobis)
+mk2k_S <- matchit(rf_fedrg ~ dbwt + mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                   priorlive + dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + gestrec3 + dplural,
+                 data = df,
+                 method = "cem",
+                 estimand = "ATT",
+                 k2k = TRUE) 
+
+summary(mk2k_S)
+
+plot(mk2k_S, type = "density", interactive = FALSE)
 
