@@ -75,14 +75,6 @@ df$cig_rec <- ifelse(df$cig_rec == "Y", 1, 0)
 # recoding rf_fedrg as follows :  X, U, N -> 0 & Y -> 1
 df$rf_fedrg <- ifelse(df$rf_fedrg == "Y", 1, 0)
 
-# OHE for education and race for both mother & father
-# NB : we creat the dummy by removing the most frequent label
-# i.e. the most frequent label becomes the reference
-ohe1 <- c("feduc","meduc","mrace6","frace6")
-df <- df %>%
-  fastDummies::dummy_cols(select_columns =  all_of(ohe1),
-                          remove_most_frequent_dummy = TRUE)
-
 mylogit <- glm(rf_fedrg ~ ., data = df, family = binomial)
 
 summary(mylogit)
