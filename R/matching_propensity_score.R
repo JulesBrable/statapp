@@ -76,8 +76,12 @@ df$cig_rec <- ifelse(df$cig_rec == "Y", 1, 0)
 df$rf_fedrg <- ifelse(df$rf_fedrg == "Y", 1, 0)
 
 mylogit <- glm(rf_fedrg ~ ., data = df, family = binomial)
-
 summary(mylogit)
+
+# Exponentiate the coefficients to get the odds ratios
+coef <- coef(mylogit)
+odds_ratio <- exp(coef)
+odds_ratio
 
 # Estimate the probability of the target variable using the logit coefficients
 df$propensity_score <- predict(mylogit, newdata = df, type = "response")
@@ -89,15 +93,16 @@ plot(roc_curve, main = "ROC Curve")
 
 # matching
 matched_data <- Matching::Match(Tr = df$rf_fedrg,
-                      M = 1,
+                      M = 1, # number of matches which should be found
                       X = df$propensity_score,
                       caliper = 0.05,
                       replace = FALSE,
                       ties = FALSE)
 
+save(matched_data, file = paste0("data/", "matched_data.Rdata"))
+toto <- miceadds::load.Rdata2(paste0("data/", "matched_data.Rdata"))
+
 # Evaluate the balance of covariates
 bal.tab <- bal.tab(matched_data, df %>% dplyr::select(!rf_fedrg))
 summary(bal.tab)
-
-
 
