@@ -1,4 +1,6 @@
 library(tidyverse)
+library(pROC)
+library(Matching)
 
 source(here::here("R/functions/statdesc_functions.R"))
 source(here::here("R/functions/sampling_functions.R"))
@@ -63,8 +65,8 @@ df <- df %>% select(!all_of(c("sex", "no_infec", "gestrec3")))
 # mother's and fathers's hispanic origin
 # 0 = non hispanic, 1 = hispanic origin 
 df %>% select(mhisp_r) %>% distinct()
-df$mhisp_r <- ifelse(df$mhisp_r != 0 , 1, 0)
-df$fhispx <- ifelse(df$fhispx != 0 , 1, 0)
+###########df$mhisp_r <- ifelse(df$mhisp_r != 0 , 1, 0)
+###########df$fhispx <- ifelse(df$fhispx != 0 , 1, 0)
 
 # recoding cigarette consumption from Y & N to 1 & 0 :
 df %>% select(cig_rec) %>% distinct()
@@ -88,7 +90,12 @@ summary(mylogit)
 # Estimate the probability of the target variable using the logit coefficients
 df$propensity_score <- predict(mylogit, newdata = df, type = "response")
 
-library(Matching)
+# AUC & ROC curve
+roc_curve <- roc(df$rf_fedrg, df$propensity_score)
+round(auc(roc_curve), 2)
+plot(roc_curve, main = "ROC Curve")
+
+
 matched_data <- Match(Tr = df$rf_fedrg,
                       M = 1,
                       X = df$propensity_score,
@@ -96,9 +103,8 @@ matched_data <- Match(Tr = df$rf_fedrg,
                       replace = FALSE,
                       ties = FALSE)
 
-install.packages("Cobalt")
 # Evaluate the balance of covariates
-library(Cobalt)
+library(cobalt)
 bal.tab <- bal.tab(matched_data, df %>% dplyr::select(!rf_fedrg))
 summary(bal.tab)
 
