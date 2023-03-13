@@ -1,6 +1,6 @@
 library(tidyverse)
 library(pROC)
-library(Matching)
+library(cobalt)
 
 source(here::here("R/functions/statdesc_functions.R"))
 source(here::here("R/functions/sampling_functions.R"))
@@ -87,8 +87,8 @@ roc_curve <- roc(df$rf_fedrg, df$propensity_score)
 round(auc(roc_curve), 2)
 plot(roc_curve, main = "ROC Curve")
 
-
-matched_data <- Match(Tr = df$rf_fedrg,
+# matching
+matched_data <- Matching::Match(Tr = df$rf_fedrg,
                       M = 1,
                       X = df$propensity_score,
                       caliper = 0.05,
@@ -96,7 +96,6 @@ matched_data <- Match(Tr = df$rf_fedrg,
                       ties = FALSE)
 
 # Evaluate the balance of covariates
-library(cobalt)
 bal.tab <- bal.tab(matched_data, df %>% dplyr::select(!rf_fedrg))
 summary(bal.tab)
 
