@@ -75,7 +75,7 @@ df$cig_rec <- ifelse(df$cig_rec == "Y", 1, 0)
 # recoding rf_fedrg as follows :  X, U, N -> 0 & Y -> 1
 df$rf_fedrg <- ifelse(df$rf_fedrg == "Y", 1, 0)
 
-mylogit <- glm(rf_fedrg ~ ., data = df, family = binomial)
+mylogit <- glm(rf_fedrg ~ ., data = df, family =  binomial(link = "logit"))
 summary(mylogit)
 
 # Exponentiate the coefficients to get the odds ratios
@@ -84,7 +84,7 @@ odds_ratio <- exp(coef)
 odds_ratio
 
 # Estimate the probability of the target variable using the logit coefficients
-df$propensity_score <- predict(mylogit, newdata = df, type = "response")
+df$propensity_score <- mylogit$fitted.values
 
 # AUC & ROC curve
 roc_curve <- roc(df$rf_fedrg, df$propensity_score)
@@ -92,17 +92,29 @@ round(auc(roc_curve), 2)
 plot(roc_curve, main = "ROC Curve")
 
 # matching
-matched_data <- Matching::Match(Tr = df$rf_fedrg,
-                      M = 1, # number of matches which should be found
-                      X = df$propensity_score,
-                      caliper = 0.05,
-                      replace = FALSE,
-                      ties = FALSE)
+matched_data <- Matching::Match(
+  Y = df$ldbwt,
+  Tr = df$rf_fedrg,
+  X = df$propensity_score,
+  M = 1, # number of matches which should be found
+  caliper = 0.05,
+  replace = FALSE,
+  ties = FALSE)
 
 save(matched_data, file = paste0("data/", "matched_data.Rdata"))
-toto <- miceadds::load.Rdata2(paste0("data/", "matched_data.Rdata"))
+
+matched_data <- miceadds::load.Rdata2(paste0("data/", "matched_data.Rdata"))
+
+summary(matched_data)
 
 # Evaluate the balance of covariates
-bal.tab <- bal.tab(matched_data, df %>% dplyr::select(!rf_fedrg))
-summary(bal.tab)
+#bal.tab <- bal.tab(toto, df %>% dplyr::select(!rf_fedrg))
+#summary(bal.tab)
 
+df_mb <- df %>% select(!c(propensity_score, ldbwt))
+
+set.seed(42)
+mb  <- Matching::MatchBalance(rf_fedrg ~ .,
+                    data=df_mb,
+                    match.out=matched_data,
+                    nboots=100)
