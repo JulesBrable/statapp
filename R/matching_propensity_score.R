@@ -75,7 +75,10 @@ df$cig_rec <- ifelse(df$cig_rec == "Y", 1, 0)
 # recoding rf_fedrg as follows :  X, U, N -> 0 & Y -> 1
 df$rf_fedrg <- ifelse(df$rf_fedrg == "Y", 1, 0)
 
-mylogit <- glm(rf_fedrg ~ ., data = df, family =  binomial(link = "logit"))
+mylogit <- glm(rf_fedrg ~ .,
+               data = df %>% select(!ldbwt),
+               family =  binomial(link = "logit"))
+
 summary(mylogit)
 
 # Exponentiate the coefficients to get the odds ratios
@@ -117,4 +120,4 @@ set.seed(42)
 mb  <- Matching::MatchBalance(rf_fedrg ~ .,
                     data=df_mb,
                     match.out=matched_data,
-                    nboots=100)
+                    nboots=10)
