@@ -4,7 +4,7 @@ source(here::here("R/functions/statdesc_functions.R"))
 source(here::here("R/functions/sampling_functions.R"))
 
 to_keep <- c("dbwt", "mager", "meduc", "fagecomb", "feduc", "frace6", "mrace15",
-             "rf_fedrg", "priorlive", "dmar", "cig_rec", "mhisp_r", "fhispx",
+             "rf_fedrg", "dplural", "priorlive", "dmar", "cig_rec", "mhisp_r", "fhispx",
              "no_infec", "sex", "gestrec3")
 
 df <- load_data("nat2021us.csv") %>%
@@ -57,6 +57,7 @@ df %>%
   count(rf_fedrg)
 
 df %>% nrow()
+
 
 # on les supprime (au moins pour cette partie, pour pouvoir faire les regressions)
 df <- df %>% 
@@ -192,10 +193,4 @@ summary(reg)
 
 stargazer::stargazer(reg, type = "html", out = "reports/reg_06_03.html")
 
-
-
-
-
-
-
-
+reg_g <- df_reg1 %>% filter(dplural)
