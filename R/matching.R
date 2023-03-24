@@ -6,15 +6,11 @@ library(data.table)
 library(tidyverse)
 library(tcltk)
 library(lattice)
+library(MatchIt)
+library(marginaleffects)
 
-install.packages("devtools")
 library(devtools)
 install_github("https://github.com/IQSS/cem.git")
-
-library(MatchIt)
-
-install.packages("marginaleffects")
-library(marginaleffects)
 
 #----------------------------loading dataset------------------------------------
 source("R/functions/sampling_functions.R")
