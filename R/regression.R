@@ -3,7 +3,9 @@ library(tidyverse)
 path <- "data"
 df_reg1 <- readRDS(paste(path, "preprocessed_data.rds", sep = "/"))
 
-df_reg1 %>% 
+df_reg1 %>% colnames()
+
+df_reg1 <- df_reg1 %>% 
   rename(c(
     "meduc_less_hs" = "meduc_1",
     "meduc_hs_nodiploma" = "meduc_2",
@@ -14,9 +16,9 @@ df_reg1 %>%
     "meduc_doctorate" = "meduc_8",
     "feduc_less_hs" = "feduc_1",
     "feduc_hs_nodiploma" = "feduc_2",
+    "feduc_hs_diploma" = "feduc_3",
     "feduc_no_degree" = "feduc_4",
     "feduc_associatedegree" = "feduc_5",
-    "feduc_bachelor" = "feduc_6",
     "feduc_master" = "feduc_7",
     "feduc_doctorate" = "feduc_8",
     "mrace_black" = "mrace6_2",
@@ -40,4 +42,9 @@ reg <- lm(ldbwt ~ .,
 
 summary(reg)
 
-#stargazer::stargazer(reg, type = "html", out = "reports/reg_06_03.html")
+today <- Sys.Date()
+reg %>% 
+  stargazer::stargazer(
+    type = "html",
+    out = glue::glue("reports/reg_{today}.html")
+    )
