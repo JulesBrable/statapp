@@ -7,7 +7,7 @@ to_keep <- c("dbwt", "mager", "meduc", "fagecomb", "feduc", "frace6", "mrace15",
              "rf_fedrg", "dplural", "priorlive", "dmar", "cig_rec", "mhisp_r", "fhispx",
              "no_infec", "sex", "gestrec3")
 
-df <- load_data("nat2021us.csv") %>%
+df <- load_data("data.csv") %>%
   select(all_of(to_keep))
 
 # pour mrace6, les labels sont mal codes, donc :
