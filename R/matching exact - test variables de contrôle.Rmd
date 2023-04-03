@@ -1,0 +1,713 @@
+---
+title: "Matching exact - test des variables de controle"
+output: html_notebook
+---
+
+## Traitement des données
+
+On charge les packages, les données et on les nettoie
+
+```{r}
+#setting environment
+rm(list = ls())
+
+library(data.table)
+library(tidyverse)
+library(tcltk)
+library(lattice)
+
+install.packages("devtools")
+library(devtools)
+install_github("https://github.com/IQSS/cem.git")
+
+library(MatchIt)
+
+install.packages("marginaleffects")
+library(marginaleffects)
+
+```
+
+```{r}
+#on définit la fonction load_data
+load_data <- function(file, path = "data"){
+  
+  df <- arrow::read_csv_arrow(
+    here::here(path, file)
+  )
+  return(df)
+}
+```
+
+
+```{r}
+#loading dataset
+path <- "Data"
+list.files(path = path)
+file <- "data.csv"
+
+
+to_keep <- c("dbwt", "mager", "meduc", "fagecomb", "feduc", "frace6", "mrace15",
+             "rf_fedrg", "rf_artec", "priorlive", "dmar", "cig_rec", "mhisp_r", 
+             "fhispx", "no_infec", "sex", "gestrec3", "dplural")
+
+df <- load_data(file)%>%
+  select(all_of(to_keep))
+```
+
+```{r}
+# NETTOYAGE DES DONNEES
+
+# pour mrace6, les labels sont mal codes, donc :
+# recoding mrace15 into mrace6 (correctly)
+df <- df %>%
+  mutate(mrace6 = case_when(
+    between(mrace15, 4, 10) ~ 4,
+    between(mrace15, 11, 14) ~ 5,
+    mrace15 == 15 ~ 6,
+    TRUE ~ as.numeric(mrace15)
+  )) %>% 
+  select(!mrace15)
+
+# on recode dmar
+df <- df %>%
+  mutate(dmar = case_when(
+    dmar == 1 ~ 1,
+    is.na(dmar) ~ 9,
+    TRUE ~ 0))
+
+# recoding rf_fedrg as follows :  X, U, N -> 0 & Y -> 1
+df$rf_fedrg <- ifelse(df$rf_fedrg == "Y", 1, 0)
+
+# recoding rf_artec as follows :  X, U, N -> 0 & Y -> 1
+df$rf_artec <- ifelse(df$rf_artec == "Y", 1, 0)
+
+#on supprime les valeurs unknown
+df <- df %>% 
+  filter(fagecomb != 99,
+         meduc != 9,
+         dbwt != 9999,
+         feduc != 9,
+         frace6 != 9,
+         mrace6 != 9,
+         priorlive != 99,
+         mhisp_r != 9,
+         fhispx != 9,
+         cig_rec != "U",
+         dmar != 9,
+         no_infec != 9,
+         gestrec3 != 3)
+
+# recoding cigarette consumption from Y & N to 1 & 0 :
+df %>% select(cig_rec) %>% distinct()
+df$cig_rec <- ifelse(df$cig_rec == "Y", 1, 0)
+
+#recoding sex
+df$sex_M <-  ifelse(df$sex == "M" , 1, 0)
+df <- df %>% select(!all_of(c("sex")))
+```
+
+#valeurs du matching de base : 
+
+```{r}
+#on réalise le matching
+mex <- matchit(rf_fedrg ~ mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                  priorlive + dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + gestrec3 + dplural,
+                data = df,
+                method = "exact",
+                k2k = TRUE,
+                estimand = "ATT") 
+
+#takes a lot of time
+summary(mex)
+```
+
+```{r}
+#on plot les distributions
+plot(mex, type = "density", interactive = FALSE)
+
+```
+
+```{r}
+
+#on cherche à représenter toutes les variables
+mD_ex <- match.data(mex)
+summary(mD_ex)
+
+```
+
+```{r}
+
+mD_ex_T <- match.data(mex, group = "treated")
+summary(mD_ex_T)
+#à la main, moyenne dbwt pour les traités = 3183
+
+```
+
+```{r}
+mD_ex_C <- match.data(mex, group="control")
+summary(mD_ex_C)
+#à la main, moyenne dbwt pour les contrôles = 3312 
+
+```
+
+```{r}
+#puis on estime l'ATT
+fitex <- lm(dbwt ~ rf_fedrg * (mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                                  priorlive + dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M 
+                                + gestrec3), data = mD_ex)
+
+summary(fitex)
+
+avg_comparisons(fitex, variables = "rf_fedrg", vcov = ~subclass,
+                newdata = subset(mD_ex, rf_fedrg == 1))
+
+#En estimant, on a un coefficient de -77,8
+```
+
+#test en enlevant du matching le sexe du bébé
+
+```{r}
+#on réalise le matching
+m_1 <- matchit(rf_fedrg ~ mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                dmar + cig_rec + mhisp_r + fhispx + no_infec + gestrec3,
+               data = df,
+               method = "exact",
+               k2k = TRUE,
+               estimand = "ATT")
+summary(m_1) 
+
+```
+
+```{r}
+#on plot les distributions
+plot(m_1, type = "density", interactive = FALSE)
+
+```
+
+```{r}
+plot(summary(m_1))
+```
+
+
+```{r}
+
+#on cherche à représenter toutes les variables
+md_1 <- match.data(m_1)
+summary(md_1) #on a 513 120 observations
+```
+
+```{r}
+
+#on affiche les traités
+md_1_T <- match.data(m_1, group = "treated")
+print(summary(md_1_T))
+#à la main, moyenne dbwt pour les contrôles = 3225
+
+```
+
+```{r}
+#on affiche les contrôles
+md_1_C <- match.data(m_1, group="control")
+print(summary(md_1_C))
+#à la main, moyenne dbwt pour les contrôles = 3345
+
+```
+
+```{r}
+#puis on estime l'ATT
+fit_1 <- lm(dbwt ~ rf_fedrg * (mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                               dmar + cig_rec + mhisp_r + fhispx + no_infec 
+                               + gestrec3), data = md_1)
+
+avg_comparisons(fit_1, variables = "rf_fedrg", vcov = ~subclass,
+                newdata = subset(md_1, rf_fedrg == 1))
+
+#résultats : estimation à -90,2
+#résultats à la main : 3225 - 3345 = -120
+```
+
+
+#test matching en enlevant la presence d'infections
+```{r}
+#on réalise le matching
+m_2 <- matchit(rf_fedrg ~ mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                dmar + cig_rec + mhisp_r + fhispx + gestrec3 + sex_M,
+               data = df,
+               method = "exact",
+               k2k = TRUE,
+               estimand = "ATT")
+summary(m_2) 
+
+```
+
+```{r}
+#on plot les distributions
+plot(m_2, type = "density", interactive = FALSE)
+
+```
+
+```{r}
+plot(summary(m_2))
+```
+
+
+```{r}
+
+#on cherche à représenter toutes les variables
+md_2 <- match.data(m_2)
+summary(md_2) #on a  observations
+```
+
+```{r}
+
+#on affiche les traités
+md_2_T <- match.data(m_2, group = "treated")
+print(summary(md_2_T))
+#à la main, moyenne dbwt pour les contrôles = 
+
+```
+
+```{r}
+#on affiche les contrôles
+md_2_C <- match.data(m_2, group="control")
+print(summary(md_2_C))
+#à la main, moyenne dbwt pour les contrôles = 3345
+
+```
+
+```{r}
+#puis on estime l'ATT
+fit_2 <- lm(dbwt ~ rf_fedrg * (mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                               dmar + cig_rec + mhisp_r + fhispx +sex
+                               + gestrec3), data = md_2)
+
+avg_comparisons(fit_2, variables = "rf_fedrg", vcov = ~subclass,
+                newdata = subset(md_2, rf_fedrg == 1))
+
+#résultats : estimation à -90,2
+#résultats à la main : 3225 - 3345 = -120
+```
+
+
+#test matching en enlevant gestrec
+```{r}
+#on réalise le matching
+m_3 <- matchit(rf_fedrg ~ mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                dmar + cig_rec + mhisp_r + fhispx + sex_M + no_infec,
+               data = df,
+               method = "exact",
+               k2k = TRUE,
+               estimand = "ATT")
+summary(m_3) 
+
+```
+
+```{r}
+#on plot les distributions
+plot(m_3, type = "density", interactive = FALSE)
+
+```
+
+```{r}
+plot(summary(m_3))
+```
+
+
+```{r}
+
+#on cherche à représenter toutes les variables
+md_3 <- match.data(m_3)
+summary(md_3) #on a  observations
+```
+
+```{r}
+
+#on affiche les traités
+md_3_T <- match.data(m_3, group = "treated")
+print(summary(md_3_T))
+#à la main, moyenne dbwt pour les contrôles = 
+
+```
+
+```{r}
+#on affiche les contrôles
+md_3_C <- match.data(m_3, group="control")
+print(summary(md_3_C))
+#à la main, moyenne dbwt pour les contrôles = 3345
+
+```
+
+```{r}
+#puis on estime l'ATT
+fit_3 <- lm(dbwt ~ rf_fedrg * (mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                               dmar + cig_rec + mhisp_r + fhispx + no_infec 
+                               + sexM), data = md_3)
+
+avg_comparisons(fit_3, variables = "rf_fedrg", vcov = ~subclass,
+                newdata = subset(md_3, rf_fedrg == 1))
+
+#résultats : estimation à 
+#résultats à la main : 
+```
+
+# on essaye d'enlever l'age de la mère
+
+```{r}
+#on réalise le matching
+m_4 <- matchit(rf_fedrg ~ meduc + fagecomb + feduc + frace6 + mrace6 +
+                dmar + cig_rec + mhisp_r + fhispx + sex_M + no_infec + gestrec3,
+               data = df,
+               method = "exact",
+               k2k = TRUE,
+               estimand = "ATT")
+summary(m_3) 
+
+```
+
+```{r}
+#on plot les distributions
+plot(m_4, type = "density", interactive = FALSE)
+
+```
+
+```{r}
+plot(summary(m_4))
+```
+
+
+```{r}
+
+#on cherche à représenter toutes les variables
+md_4 <- match.data(m_4)
+summary(md_4) #on a  observations
+```
+
+```{r}
+
+#on affiche les traités
+md_4_T <- match.data(m_4, group = "treated")
+print(summary(md_4_T))
+#à la main, moyenne dbwt pour les contrôles = 
+
+```
+
+```{r}
+#on affiche les contrôles
+md_4_C <- match.data(m_4, group="control")
+print(summary(md_4_C))
+#à la main, moyenne dbwt pour les contrôles =
+
+```
+
+```{r}
+#puis on estime l'ATT
+fit_4 <- lm(dbwt ~ rf_fedrg * (meduc + fagecomb + feduc + frace6 + mrace6 +
+                               dmar + cig_rec + mhisp_r + fhispx + no_infec + gestrec3
+                               ), data = md_4)
+
+avg_comparisons(fit_4, variables = "rf_fedrg", vcov = ~subclass,
+                newdata = subset(md_4, rf_fedrg == 1))
+
+#résultats : estimation à 
+#résultats à la main : 
+```
+
+#on essaye d'enlever l'éducation de la mère
+```{r}
+#on réalise le matching
+m_5 <- matchit(rf_fedrg ~ mager + fagecomb + feduc + frace6 + mrace6 +
+                dmar + cig_rec + mhisp_r + fhispx + sex_M + no_infec + gestrec3,
+               data = df,
+               method = "exact",
+               k2k = TRUE,
+               estimand = "ATT")
+summary(m_5) 
+
+```
+
+```{r}
+#on plot les distributions
+plot(m_5, type = "density", interactive = FALSE)
+
+```
+
+```{r}
+plot(summary(m_5))
+```
+
+
+```{r}
+
+#on cherche à représenter toutes les variables
+md_5 <- match.data(m_5)
+summary(md_5) #on a  observations
+```
+
+```{r}
+
+#on affiche les traités
+md_5_T <- match.data(m_5, group = "treated")
+print(summary(md_5_T))
+#à la main, moyenne dbwt pour les contrôles = 
+
+```
+
+```{r}
+#on affiche les contrôles
+md_5_C <- match.data(m_5, group="control")
+print(summary(md_5_C))
+#à la main, moyenne dbwt pour les contrôles =
+
+```
+
+```{r}
+#puis on estime l'ATT
+fit_5 <- lm(dbwt ~ rf_fedrg * (mager + fagecomb + feduc + frace6 + mrace6 +
+                               dmar + cig_rec + mhisp_r + fhispx + no_infec + gestrec3
+                               ), data = md_5)
+
+avg_comparisons(fit_5, variables = "rf_fedrg", vcov = ~subclass,
+                newdata = subset(md_5, rf_fedrg == 1))
+
+#résultats : estimation à 
+#résultats à la main : 
+```
+
+#on essaye d'enlever l'age du père
+```{r}
+#on réalise le matching
+m_6 <- matchit(rf_fedrg ~ mager + meduc + feduc + frace6 + mrace6 +
+                dmar + cig_rec + mhisp_r + fhispx + sex_M + no_infec + gestrec3,
+               data = df,
+               method = "exact",
+               k2k = TRUE,
+               estimand = "ATT")
+summary(m_6) 
+
+```
+
+```{r}
+#on plot les distributions
+plot(m_6, type = "density", interactive = FALSE)
+
+```
+
+```{r}
+plot(summary(m_6))
+```
+
+
+```{r}
+
+#on cherche à représenter toutes les variables
+md_6 <- match.data(m_6)
+summary(md_6) #on a  observations
+```
+
+```{r}
+
+#on affiche les traités
+md_6_T <- match.data(m_6, group = "treated")
+print(summary(md_6_T))
+#à la main, moyenne dbwt pour les contrôles = 
+
+```
+
+```{r}
+#on affiche les contrôles
+md_6_C <- match.data(m_6, group="control")
+print(summary(md_6_C))
+#à la main, moyenne dbwt pour les contrôles =
+
+```
+
+```{r}
+#puis on estime l'ATT
+fit_6 <- lm(dbwt ~ rf_fedrg * (mager + meduc + feduc + frace6 + mrace6 +
+                               dmar + cig_rec + mhisp_r + fhispx + no_infec + gestrec3
+                               ), data = md_6)
+
+avg_comparisons(fit_6, variables = "rf_fedrg", vcov = ~subclass,
+                newdata = subset(md_6, rf_fedrg == 1))
+
+#résultats : estimation à 
+#résultats à la main : 
+```
+
+#on essaye d'enlever l'education du père
+```{r}
+#on réalise le matching
+m_7 <- matchit(rf_fedrg ~ mager + meduc + fagecomb + frace6 + mrace6 +
+                dmar + cig_rec + mhisp_r + fhispx + sex_M + no_infec + gestrec3,
+               data = df,
+               method = "exact",
+               k2k = TRUE,
+               estimand = "ATT")
+summary(m_7) 
+
+```
+
+```{r}
+#on plot les distributions
+plot(m_7, type = "density", interactive = FALSE)
+
+```
+
+```{r}
+plot(summary(m_7))
+```
+
+
+```{r}
+
+#on cherche à représenter toutes les variables
+md_7 <- match.data(m_7)
+summary(md_7) #on a  observations
+```
+
+```{r}
+
+#on affiche les traités
+md_7_T <- match.data(m_7, group = "treated")
+print(summary(md_7_T))
+#à la main, moyenne dbwt pour les contrôles = 
+
+```
+
+```{r}
+#on affiche les contrôles
+md_7_C <- match.data(m_7, group="control")
+print(summary(md_7_C))
+#à la main, moyenne dbwt pour les contrôles =
+
+```
+
+```{r}
+#puis on estime l'ATT
+fit_7 <- lm(dbwt ~ rf_fedrg * (mager + meduc + fagecomb + frace6 + mrace6 +
+                               dmar + cig_rec + mhisp_r + fhispx + no_infec + gestrec3
+                               ), data = md_7)
+
+avg_comparisons(fit_7, variables = "rf_fedrg", vcov = ~subclass,
+                newdata = subset(md_7, rf_fedrg == 1))
+
+#résultats : estimation à 
+#résultats à la main : 
+```
+
+#on essaye d'enlever le statut marital
+```{r}
+#on réalise le matching
+m_8 <- matchit(rf_fedrg ~ mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+               cig_rec + mhisp_r + fhispx + sex_M + no_infec + gestrec3,
+               data = df,
+               method = "exact",
+               k2k = TRUE,
+               estimand = "ATT")
+summary(m_8) 
+
+```
+
+```{r}
+#on plot les distributions
+plot(m_8, type = "density", interactive = FALSE)
+
+```
+
+```{r}
+plot(summary(m_8))
+```
+
+
+```{r}
+
+#on cherche à représenter toutes les variables
+md_8 <- match.data(m_8)
+summary(md_8) #on a  observations
+```
+
+```{r}
+
+#on affiche les traités
+md_8_T <- match.data(m_8, group = "treated")
+print(summary(md_8_T))
+#à la main, moyenne dbwt pour les contrôles = 
+
+```
+
+```{r}
+#on affiche les contrôles
+md_8_C <- match.data(m_8, group="control")
+print(summary(md_8_C))
+#à la main, moyenne dbwt pour les contrôles =
+
+```
+
+```{r}
+#puis on estime l'ATT
+fit_8 <- lm(dbwt ~ rf_fedrg * (mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                               cig_rec + mhisp_r + fhispx + no_infec + gestrec3
+                               ), data = md_8)
+
+avg_comparisons(fit_8, variables = "rf_fedrg", vcov = ~subclass,
+                newdata = subset(md_8, rf_fedrg == 1))
+
+#résultats : estimation à 
+#résultats à la main : 
+```
+
+# on essaye de supprimer la cigarette
+```{r}
+#on réalise le matching
+m_9 <- matchit(rf_fedrg ~ mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                priorlive + dmar + mhisp_r + fhispx + no_infec + sex_M + gestrec3 + dplural,
+                data = df,
+                method = "exact",
+                k2k = TRUE,
+                estimand = "ATT") 
+
+#takes a lot of time
+summary(m_9)
+```
+
+```{r}
+#on plot les distributions
+plot(m_9, type = "density", interactive = FALSE)
+
+```
+
+```{r}
+
+#on cherche à représenter toutes les variables
+md_9 <- match.data(m_9)
+summary(md_9)
+
+```
+
+```{r}
+
+md_9_T <- match.data(m_9, group = "treated")
+summary(md_9_T)
+#à la main, moyenne dbwt pour les traités = 3183
+
+```
+
+```{r}
+md_9_C <- match.data(m_9, group="control")
+summary(md_9_C)
+#à la main, moyenne dbwt pour les contrôles = 3312 
+
+```
+
+```{r}
+#puis on estime l'ATT
+fit_9 <- lm(dbwt ~ rf_fedrg * (mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                                  priorlive + dmar + mhisp_r + fhispx + no_infec + sex_M 
+                                + gestrec3), data = md_9)
+
+avg_comparisons(fit_9, variables = "rf_fedrg", vcov = ~subclass,
+                newdata = subset(md_9, rf_fedrg == 1))
+
+#En estimant, on a un coefficient de -77,8
+```
+

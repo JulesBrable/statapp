@@ -117,7 +117,9 @@ summary(md_fedrg_C)
 #puis on estime l'ATT
 fit1 <- lm(dbwt ~ rf_fedrg * (mager + meduc + fagecomb + feduc + frace6 + mrace6 +
            priorlive + dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M 
-           + gestrec3 + dplural), data = md_fedrg)
+           + gestrec3), data = md_fedrg)
+
+summary(fit1)
 
 avg_comparisons(fit1, variables = "rf_fedrg", vcov = ~subclass,
                 newdata = subset(md_fedrg, rf_fedrg == 1))
@@ -149,7 +151,7 @@ avg_comparisons(fitk2k, variables = "rf_fedrg", vcov = ~subclass,
                 newdata = subset(mD_k2k, rf_fedrg == 1))
 
 
-#----------------------matching fedrg EXACT: cem avec MatchIt-----------------------
+#----------------------matching fedrg EXACT-----------------------
 #avec un match exact (essai avec la distance par défaut = Mahalanobis)
 mex <- matchit(rf_fedrg ~ mager + meduc + fagecomb + feduc + frace6 + mrace6 +
                   priorlive + dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + gestrec3 + dplural,
@@ -179,6 +181,8 @@ summary(mD_ex_C)
 fitex <- lm(dbwt ~ rf_fedrg * (mager + meduc + fagecomb + feduc + frace6 + mrace6 +
                                   priorlive + dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M 
                                 + gestrec3), data = mD_ex)
+
+summary(fitex)
 
 avg_comparisons(fitex, variables = "rf_fedrg", vcov = ~subclass,
                 newdata = subset(mD_ex, rf_fedrg == 1))
@@ -399,7 +403,7 @@ avg_comparisons(fitk2k, variables = "rf_fedrg", vcov = ~subclass,
                 newdata = subset(mD_k2k, rf_fedrg == 1))
 
 
-#----------------------matching fedrg EXACT: cem avec MatchIt-----------------------
+#----------------------matching artec EXACT-----------------------
 #avec un match exact (essai avec la distance par défaut = Mahalanobis)
 mex_artec <- matchit(rf_artec ~ mager + meduc + fagecomb + feduc + frace6 + mrace6 +
                  priorlive + dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + gestrec3 + dplural,
