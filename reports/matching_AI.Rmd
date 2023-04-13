@@ -1,0 +1,152 @@
+---
+title: "Matching with Abadie-Imbens (2006) estimators"
+author: "Jules Brable"
+date: "2023-04-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, error = F, warning = F, message = F) 
+```
+
+```{r}
+library(Matching)
+library(MatchIt)
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+
+source(here::here("R/matching_AI.R"))
+path <- here::here("data")
+```
+
+
+
+```{r}
+df <- readRDS(paste(path, "preprocessed_data.rds", sep = "/"))
+
+res <- est_Abadie_Imbens(
+  df, "rf_fedrg", "dbwt", M = 1, caliper = 0.2, estimand = "ATT", ties = FALSE
+  )
+
+# AI = Abadie-Imbens
+save(res, file = paste0("data/", "matched_AI.Rdata"))
+
+matched_AI1 <- miceadds::load.Rdata2(paste0("data/", "matched_AI.Rdata"))
+
+summary(matched_AI1)
+```
+
+
+# Comparaison de l'inférence des différentes méthodes
+
+```{r}
+set.seed(123)
+df <- readRDS(paste(path, "preprocessed_data.rds", sep = "/")) %>% 
+  sample_n(100000)
+
+res <- est_Abadie_Imbens(
+  df, "rf_fedrg", "dbwt", M = 1, caliper = 0.2, estimand = "ATT", ties = FALSE
+)
+
+save(res, file = paste0("data/", "matched_AI_100000.Rdata"))
+res <- miceadds::load.Rdata2("matched_AI_100000.Rdata", path = path)
+
+mex1 <- matchit(rf_fedrg ~ . -dbwt,
+               data = df,
+               method = "cem",
+               estimand = "ATT")
+
+mex2 <- matchit(rf_fedrg ~ . -dbwt,
+               data = df,
+               method = "nearest",
+               distance = "mahalanobis",
+               estimand = "ATT")
+
+mex3 <- matchit(rf_fedrg ~ . -dbwt,
+               data = df,
+               method = "nearest",
+               distance = "glm",
+               caliper = .25,
+               estimand = "ATT")
+
+matched_data_cem1 <- match.data(mex1)
+matched_data_cem2 <- match.data(mex2)
+matched_data_cem3 <- match.data(mex3)
+
+res1 <- lm(dbwt ~ ., data = matched_data_cem1 %>% 
+            select(all_of(df %>% colnames())))
+
+res2 <- lm(dbwt ~ ., data = matched_data_cem2 %>% 
+            select(all_of(df %>% colnames())))
+
+res3 <- lm(dbwt ~ ., data = matched_data_cem3 %>% 
+            select(all_of(df %>% colnames())))
+```
+
+
+```{r}
+summary(res) # -42.642 6.5682 -6.4922 8.4573e-11 
+```
+
+<br>
+
+## Coercened Exact Matching (CEM)
+
+<br>
+
+```{r}
+summary(res1) # -11.6505     6.3440  -1.836 0.066314 .
+```
+
+<br>
+
+## Nearest Neighboor Matching with Mahalanobis distance
+
+<br>
+
+```{r}
+summary(res2) # -39.1215     4.8869   -8.005 1.22e-15 ***
+```
+
+<br>
+
+## Nearest Neighboor Matching with glm distance
+
+It uses the probability score.
+
+<br>
+
+```{r}
+summary(res3) # -39.49465    4.88109   -8.091 6.05e-16 ***
+```
+
+<br>
+
+En résumé, on obtient :
+
+<br>
+
+<pre>
+```{r table, results='asis'}
+data <- data.frame(
+  Method = c("AI", "CEM", "NN + Mahalanobis", "NN + GLM"),
+  ATT = c(-42.642, -11.6505, -39.1215, -39.49465),
+  se = c(6.5682, 6.3440, 4.8869, 4.88109),
+  `t-stat` = c(-6.4922, -1.836, -8.005, -8.091),
+  `p-value` = c(8.4573e-11, 0.066314, 1.22e-15, 6.05e-16),
+  sign = c("***", ".", "***", "***")
+)
+
+kable(data, format = "html", digits = 5, col.names = c("Method", "ATT", "se", "t-stat", "p-value", "sign"), align = "c", row.names = TRUE) %>%
+  kable_styling("striped", full_width = F, position = "center") %>%
+  row_spec(0, bold = T, background = "lightgray") %>%
+  column_spec(6, color = "blue") %>%
+  add_header_above(c(" " = 1, "Comparison of the estimation results for different matching methods" = 4))
+```
+</pre>
+
+
+
+
+
