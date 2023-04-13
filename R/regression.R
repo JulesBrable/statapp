@@ -129,7 +129,7 @@ reg_premature <- lm(gest_under_37_weeks ~ .,
 summary(reg_premature)
 
 today <- Sys.Date()
-reg %>% 
+reg %>%  
   stargazer::stargazer(
     type = "html",
     out = glue::glue("reports/reg_{today}.html")
