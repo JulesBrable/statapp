@@ -138,11 +138,32 @@ data <- data.frame(
   sign = c("***", ".", "***", "***")
 )
 
-kable(data, format = "html", digits = 5, col.names = c("Method", "ATT", "se", "t-stat", "p-value", "sign"), align = "c", row.names = TRUE) %>%
+kable(data, format = "html", digits = 5, col.names = c("Method", "ATT", "se", "t-stat", "p-value", "sign"), align = "c", row.names = FALSE) %>%
   kable_styling("striped", full_width = F, position = "center") %>%
   row_spec(0, bold = T, background = "lightgray") %>%
   column_spec(6, color = "blue") %>%
-  add_header_above(c(" " = 1, "Comparison of the estimation results for different matching methods" = 4))
+  add_header_above(c("Comparison of the estimation results for different matching methods" = 6)) %>% 
+  footnote(general = "N=100000, seed(123)", general_title = "")
+```
+</pre>
+
+<pre>
+```{r table, results='asis'}
+data <- data.frame(
+  ATT = -36.64800,
+  se = 1.90000,
+  `t-stat` = -19.28800,
+  `p-value` = 0.00000,
+  sign = "***"
+)
+
+kable(data, format = "html", digits = 5, col.names = c("ATT", "se", "t-stat", "p-value", "sign"), align = "c", row.names = FALSE) %>%
+  kable_styling("striped", full_width = F, position = "center") %>%
+  row_spec(0, bold = T, background = "lightgray") %>%
+  column_spec(5, color = "blue") %>%
+  add_header_above(c("Result for A-I Matching (N=901759)" = 5)) %>% 
+  footnote(general = "Matched number of treated obs : 132701 \n
+           Number of observations dropped : 64102", general_title = "")
 ```
 </pre>
 
