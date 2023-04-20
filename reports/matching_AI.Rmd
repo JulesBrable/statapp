@@ -30,7 +30,7 @@ res <- est_Abadie_Imbens(
   )
 
 # AI = Abadie-Imbens
-save(res, file = paste0("data/", "matched_AI.Rdata"))
+save(res, file = paste(path, "matched_AI.Rdata", sep = "/"))
 
 matched_AI1 <- miceadds::load.Rdata2(paste0("data/", "matched_AI.Rdata"))
 
@@ -49,7 +49,7 @@ res <- est_Abadie_Imbens(
   df, "rf_fedrg", "dbwt", M = 1, caliper = 0.2, estimand = "ATT", ties = FALSE
 )
 
-save(res, file = paste0("data/", "matched_AI_100000.Rdata"))
+save(res, file = paste(path, "matched_AI_100000.Rdata", sep = "/"))
 res <- miceadds::load.Rdata2("matched_AI_100000.Rdata", path = path)
 
 mex1 <- matchit(rf_fedrg ~ . -dbwt,
