@@ -1,0 +1,39 @@
+---
+title: "Matching Jules"
+output: html_notebook
+---
+
+
+```{r}
+library(Matching)
+library(tidyverse)
+```
+
+```{r}
+
+# Function to estimate the ATE/ATT
+# using Abadie-Imbens (2006) matching method
+est_Abadie_Imbens <- function(data, treat_var, outcome_var, ...) {
+  
+  Match(Y = data[[outcome_var]],
+        Tr = data[[treat_var]],
+        X =  data[, setdiff(names(data), c(outcome_var, treat_var)),
+                  with = FALSE],
+        ...)
+}
+
+```
+
+```{r}
+
+path <- "data"
+df <- readRDS(paste(path, "preprocessed_data.rds", sep = "/"))
+
+```
+
+```{r}
+res <- est_Abadie_Imbens(
+  df, "rf_fedrg", "dbwt", M = 1, caliper = 0.2, estimand = "ATT", ties = FALSE)
+summary(res)
+```
+
