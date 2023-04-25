@@ -112,3 +112,7 @@ res <- df %>%
   ungroup()
 
 res %>% distinct(group_id) %>% nrow()
+
+df_final <- res %>% 
+  select(index) %>% 
+  left_join(df)
