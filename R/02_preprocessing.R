@@ -7,7 +7,7 @@ to_keep <- c("dbwt", "mager", "meduc", "fagecomb", "feduc", "frace6", "mrace15",
              "rf_fedrg", "dplural", "priorlive", "dmar", "cig_rec", "mhisp_r", "fhispx",
              "no_infec", "sex", "gestrec3")
 
-df <- load_data("data.csv") %>%
+df <- load_data("data.csv") %>% # or modify the data source
   select(all_of(to_keep))
 
 # pour mrace6, les labels sont mal codes, donc :
@@ -171,4 +171,4 @@ df <- df %>%
 df <- df %>% 
   select(!all_of(ohe1))
 
-saveRDS(df, "data/preprocessed_data.rds")
+saveRDS(df, "data/preprocessed_data.rds") # modify the created file name
