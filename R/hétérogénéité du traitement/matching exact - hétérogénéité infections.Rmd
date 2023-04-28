@@ -1,0 +1,190 @@
+---
+title: "matching exact - hétérogénéité infection "
+output: html_notebook
+---
+
+```{r}
+library(data.table)
+library(tidyverse)
+library(tcltk)
+library(lattice)
+library(MatchIt)
+library(marginaleffects)
+
+```
+
+```{r}
+#on définit la fonction load_data
+load_data <- function(file, path = "data"){
+  
+  df <- arrow::read_csv_arrow(
+    here::here(path, file)
+  )
+  return(df)
+}
+```
+
+
+```{r}
+#loading dataset
+path <- "Data"
+list.files(path = path)
+file <- "data.csv"
+
+
+to_keep <- c("dbwt", "mager", "meduc", "fagecomb", "feduc", "frace6", "mrace15",
+             "rf_fedrg", "rf_artec", "priorlive", "dmar", "cig_rec", "mhisp_r", 
+             "fhispx", "no_infec", "sex", "gestrec3", "dplural")
+
+df <- load_data(file)%>%
+  select(all_of(to_keep))
+```
+
+```{r}
+# NETTOYAGE DES DONNEES
+
+# pour mrace6, les labels sont mal codes, donc :
+# recoding mrace15 into mrace6 (correctly)
+df <- df %>%
+  mutate(mrace6 = case_when(
+    between(mrace15, 4, 10) ~ 4,
+    between(mrace15, 11, 14) ~ 5,
+    mrace15 == 15 ~ 6,
+    TRUE ~ as.numeric(mrace15)
+  )) %>% 
+  select(!mrace15)
+
+# on recode dmar
+df <- df %>%
+  mutate(dmar = case_when(
+    dmar == 1 ~ 1,
+    is.na(dmar) ~ 9,
+    TRUE ~ 0))
+
+# recoding rf_fedrg as follows :  X, U, N -> 0 & Y -> 1
+df$rf_fedrg <- ifelse(df$rf_fedrg == "Y", 1, 0)
+
+# recoding rf_artec as follows :  X, U, N -> 0 & Y -> 1
+df$rf_artec <- ifelse(df$rf_artec == "Y", 1, 0)
+
+#on supprime les valeurs unknown
+df <- df %>% 
+  filter(fagecomb != 99,
+         meduc != 9,
+         dbwt != 9999,
+         feduc != 9,
+         frace6 != 9,
+         mrace6 != 9,
+         priorlive != 99,
+         mhisp_r != 9,
+         fhispx != 9,
+         cig_rec != "U",
+         dmar != 9,
+         no_infec != 9,
+         gestrec3 != 3)
+
+# recoding cigarette consumption from Y & N to 1 & 0 :
+df %>% select(cig_rec) %>% distinct()
+df$cig_rec <- ifelse(df$cig_rec == "Y", 1, 0)
+
+#recoding sex
+df$sex_M <-  ifelse(df$sex == "M" , 1, 0)
+df <- df %>% select(!all_of(c("sex")))
+```
+
+
+```{r}
+m <- matchit(rf_fedrg ~ mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + gestrec3,
+             data = df,
+             method = "exact",
+             k2k = TRUE,
+             estimand = "ATT") 
+
+```
+
+```{r}
+#on plot les distributions
+plot(m, type = "density", interactive = FALSE)
+```
+
+
+
+```{r}
+#on cherche à représenter toutes les variables
+md <- match.data(m)
+summary(md)
+```
+
+```{r}
+#on cherche des informations sur les traités
+md_T <- match.data(m, group = "treated")
+summary(md_T)
+#à la main, moyenne dbwt pour les traités = 3150
+
+```
+
+```{r}
+#on cherche des informations sur les contrôles
+md_C <- match.data(m, group="control")
+summary(md_C)
+#à la main, moyenne dbwt pour les contrôles = 3303
+```
+
+
+```{r}
+#puis on estime l'ATT
+fit <- lm(dbwt ~ rf_fedrg * (mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + gestrec3), data = md)
+
+avg_comparisons(fit, variables = "rf_fedrg", vcov = ~subclass,
+                newdata = subset(md, rf_fedrg == 1))
+
+# résultat : -91,6
+# résultats en calculant à la main : 3150 - 3303 = -153
+
+```
+
+
+On essaye de séparer les pères les mères malades des mères non malades
+
+On compare les malades :
+
+```{r}
+md_S <- md %>% filter(no_infec == 0) #on a 132 observations
+summary(md_S)
+#à la main, moyenne dbwt pour les filles = 3298
+```
+
+```{r}
+md_S_T <- md_T %>% filter(no_infec == 0) #on a 87 observations
+summary(md_S_T)
+#à la main, moyenne dbwt pour les filles des traitées = 3296
+```
+
+```{r}
+md_S_C <- md_C %>% filter(no_infec == 0) #on a 45 observations
+summary(md_S_C)
+#à la main, moyenne dbwt pour les jumeaux des mères plus jeunes contrôles = 3302
+```
+
+Et pour les saines
+
+```{r}
+md_M <- md %>% filter(no_infec == 1) #on a 462 737 observations
+summary(md_M)
+#à la main, moyenne dbwt pour les jumeaux des mères plus âgées = 3254
+```
+
+```{r}
+md_M_T <- md_T %>% filter(no_infec == 1) #on a 147 900 observations
+summary(md_M_T)
+#à la main, moyenne dbwt pour les enfants des pères plus âgés traités = 3149
+```
+
+
+```{r}
+md_M_C <- md_C %>% filter(no_infec == 1) #on a 314 837 observations
+summary(md_M_C)
+#à la main, moyenne dbwt pour les enfants des pères plus âgés contrôles = 3303
+```

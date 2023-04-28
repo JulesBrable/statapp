@@ -1,0 +1,191 @@
+---
+title: "comparaison hétérogénéité âge du père"
+output: html_notebook
+---
+
+```{r}
+library(data.table)
+library(tidyverse)
+library(tcltk)
+library(lattice)
+library(MatchIt)
+library(marginaleffects)
+
+```
+
+```{r}
+#on définit la fonction load_data
+load_data <- function(file, path = "data"){
+  
+  df <- arrow::read_csv_arrow(
+    here::here(path, file)
+  )
+  return(df)
+}
+```
+
+
+```{r}
+#loading dataset
+path <- "Data"
+list.files(path = path)
+file <- "data.csv"
+
+
+to_keep <- c("dbwt", "mager", "meduc", "fagecomb", "feduc", "frace6", "mrace15",
+             "rf_fedrg", "priorlive", "dmar", "cig_rec", "mhisp_r", 
+             "fhispx", "no_infec")
+
+df <- load_data(file)%>%
+  select(all_of(to_keep))
+```
+
+```{r}
+# NETTOYAGE DES DONNEES
+
+# pour mrace6, les labels sont mal codes, donc :
+# recoding mrace15 into mrace6 (correctly)
+df <- df %>%
+  mutate(mrace6 = case_when(
+    between(mrace15, 4, 10) ~ 4,
+    between(mrace15, 11, 14) ~ 5,
+    mrace15 == 15 ~ 6,
+    TRUE ~ as.numeric(mrace15)
+  )) %>% 
+  select(!mrace15)
+
+# on recode dmar
+df <- df %>%
+  mutate(dmar = case_when(
+    dmar == 1 ~ 1,
+    is.na(dmar) ~ 9,
+    TRUE ~ 0))
+
+# recoding rf_fedrg as follows :  X, U, N -> 0 & Y -> 1
+df$rf_fedrg <- ifelse(df$rf_fedrg == "Y", 1, 0)
+
+#on supprime les valeurs unknown
+df <- df %>% 
+  filter(fagecomb != 99,
+         meduc != 9,
+         dbwt != 9999,
+         feduc != 9,
+         frace6 != 9,
+         mrace6 != 9,
+         priorlive != 99,
+         mhisp_r != 9,
+         fhispx != 9,
+         cig_rec != "U",
+         dmar != 9,
+         no_infec != 9)
+
+# recoding cigarette consumption from Y & N to 1 & 0 :
+df %>% select(cig_rec) %>% distinct()
+df$cig_rec <- ifelse(df$cig_rec == "Y", 1, 0)
+
+#recoding sex
+df$sex_M <-  ifelse(df$sex == "M" , 1, 0)
+df <- df %>% select(!all_of(c("sex")))
+```
+```{r}
+#variation selon jumeaux ou single
+df <- df %>% filter(dplural == 1) 
+```
+
+```{r}
+m <- matchit(rf_fedrg ~ mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                dmar + cig_rec + mhisp_r + fhispx + no_infec + priorlive,
+             data = df,
+             method = "exact",
+             k2k = TRUE,
+             estimand = "ATT") 
+
+```
+
+```{r}
+#on plot les distributions
+plot(m, type = "density", interactive = FALSE)
+```
+
+
+
+```{r}
+#on cherche à représenter toutes les variables
+md <- match.data(m)
+summary(md)
+```
+
+```{r}
+#on cherche des informations sur les traités
+md_T <- match.data(m, group = "treated")
+summary(md_T)
+#à la main, moyenne dbwt pour les traités = 3325
+
+```
+
+```{r}
+#on cherche des informations sur les contrôles
+md_C <- match.data(m, group="control")
+summary(md_C)
+#à la main, moyenne dbwt pour les contrôles = 3388
+```
+
+
+```{r}
+#puis on estime l'ATT
+fit <- lm(dbwt ~ rf_fedrg * (mager + meduc + fagecomb + feduc + frace6 + mrace6 +
+                dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + gestrec3), data = md)
+
+avg_comparisons(fit, variables = "rf_fedrg", vcov = ~subclass,
+                newdata = subset(md, rf_fedrg == 1))
+
+# résultat : -42,7
+# résultats en calculant à la main : 3325 - 3388 = -63
+
+```
+
+
+On essaye de séparer les pères les plus âgés des pères plus jeunes : comparaison du dernier et du premier quantile
+
+On compare les pères plus jeunes :
+
+```{r}
+md_Y <- md %>% filter(fagecomb <= 31) #on a 110 586 observations
+summary(md_Y)
+#à la main, moyenne dbwt pour les enfants des pères plus jeunes = 3261
+```
+
+```{r}
+md_Y_T <- md_T %>% filter(fagecomb <= 31) #on a 34 704 observations
+summary(md_Y_T)
+#à la main, moyenne dbwt pour les jumeaux des mères plus jeunes traitées = 3304
+```
+
+```{r}
+md_Y_C <- md_C %>% filter(fagecomb <= 31) #on a 2346 observations
+summary(md_Y_C)
+#à la main, moyenne dbwt pour les jumeaux des mères plus jeunes contrôles = 3388
+```
+On a un effet de -84 grammes
+
+Et pour les pères plus âgés 
+
+```{r}
+md_O <- md %>% filter(fagecomb >= 37) #on a 105 441 observations
+summary(md_O)
+#à la main, moyenne dbwt pour les jumeaux des mères plus âgées = 3375
+```
+
+```{r}
+md_O_T <- md_T %>% filter(fagecomb >= 37) #on a 35 063 observations
+summary(md_O_T)
+#à la main, moyenne dbwt pour les enfants des pères plus âgés traités = 3345
+```
+
+
+```{r}
+md_O_C <- md_C %>% filter(fagecomb >= 37) #on a 70 378 observations
+summary(md_O_C)
+#à la main, moyenne dbwt pour les enfants des pères plus âgés contrôles = 3390
+```
+Effet calculé : -45 grammes

@@ -1,7 +1,8 @@
 ---
-title: "comparaison hétérogénéité âge du père"
+title: "hétérégonéité traitement - priorlive"
 output: html_notebook
 ---
+
 
 ```{r}
 library(data.table)
@@ -39,6 +40,7 @@ to_keep <- c("dbwt", "mager", "meduc", "fagecomb", "feduc", "frace6", "mrace15",
 df <- load_data(file)%>%
   select(all_of(to_keep))
 ```
+
 ```{r}
 # NETTOYAGE DES DONNEES
 
@@ -90,10 +92,7 @@ df$cig_rec <- ifelse(df$cig_rec == "Y", 1, 0)
 df$sex_M <-  ifelse(df$sex == "M" , 1, 0)
 df <- df %>% select(!all_of(c("sex")))
 ```
-```{r}
-#variation selon jumeaux ou single
-df <- df %>% filter(dplural == 1) 
-```
+
 
 ```{r}
 m <- matchit(rf_fedrg ~ mager + meduc + fagecomb + feduc + frace6 + mrace6 +
@@ -122,7 +121,7 @@ summary(md)
 #on cherche des informations sur les traités
 md_T <- match.data(m, group = "treated")
 summary(md_T)
-#à la main, moyenne dbwt pour les traités = 3323
+#à la main, moyenne dbwt pour les traités = 3150
 
 ```
 
@@ -130,7 +129,7 @@ summary(md_T)
 #on cherche des informations sur les contrôles
 md_C <- match.data(m, group="control")
 summary(md_C)
-#à la main, moyenne dbwt pour les contrôles = 3399
+#à la main, moyenne dbwt pour les contrôles = 3303
 ```
 
 
@@ -142,52 +141,51 @@ fit <- lm(dbwt ~ rf_fedrg * (mager + meduc + fagecomb + feduc + frace6 + mrace6 
 avg_comparisons(fit, variables = "rf_fedrg", vcov = ~subclass,
                 newdata = subset(md, rf_fedrg == 1))
 
-# résultat : -52,2
-# résultats en calculant à la main : 3323 - 3399 = -76
+# résultat : -91,6
+# résultats en calculant à la main : 3150 - 3303 = -153
 
 ```
 
 
-On essaye de séparer les pères les plus âgés des pères plus jeunes : comparaison du dernier et du premier quantile
+On essaye de séparer les mères primipares des autres
 
-On compare les mères plus jeunes :
-
-```{r}
-md_Y <- md %>% filter(fagecomb <= 31) #on a 5196 observations
-summary(md_Y)
-#à la main, moyenne dbwt pour les enfants des pères plus jeunes = 3256
-```
+On compare les primipares :
 
 ```{r}
-md_Y_T <- md_T %>% filter(fagecomb <= 31) #on a 2850 observations
-summary(md_Y_T)
-#à la main, moyenne dbwt pour les jumeaux des mères plus jeunes traitées = 3114
+md_F <- md %>% filter(priorlive == 0) #on a 234 283 observations
+summary(md_F)
+#à la main, moyenne dbwt pour les filles = 3219
 ```
 
 ```{r}
-md_Y_C <- md_C %>% filter(fagecomb <= 31) #on a 2346 observations
-summary(md_Y_C)
-#à la main, moyenne dbwt pour les jumeaux des mères plus jeunes contrôles = 3323
-```
-
-Et pour les pères plus âgés 
-
-```{r}
-md_O <- md %>% filter(fagecomb >= 37) #on a 4747 observations
-summary(md_O)
-#à la main, moyenne dbwt pour les jumeaux des mères plus âgées = 3260
+md_F_T <- md_T %>% filter(priorlive == 0) #on a 85 676 observations
+summary(md_F_T)
+#à la main, moyenne dbwt pour les filles des traitées = 3154
 ```
 
 ```{r}
-md_O_T <- md_T %>% filter(fagecomb >= 37) #on a 2356 observations
-summary(md_O_T)
-#à la main, moyenne dbwt pour les enfants des pères plus âgés traités = 3183
+md_F_C <- md_C %>% filter(priorlive == 0) #on a 148 607 observations
+summary(md_F_C)
+#à la main, moyenne dbwt pour les jumeaux des mères plus jeunes contrôles = 3256
+```
+
+Et pour les autres
+
+```{r}
+md_G <- md %>% filter(priorlive != 0) #on a 228 586 observations
+summary(md_G)
+#à la main, moyenne dbwt pour les jumeaux des mères plus âgées = 3290
+```
+
+```{r}
+md_G_T <- md_T %>% filter(priorlive != 0) #on a 62 311 observations
+summary(md_G_T)
+#à la main, moyenne dbwt pour les enfants des pères plus âgés traités = 3143
 ```
 
 
 ```{r}
-md_O_C <- md_C %>% filter(fagecomb >= 37) #on a 2391 observations
-summary(md_O_C)
-#à la main, moyenne dbwt pour les enfants des pères plus âgés contrôles = 3296
+md_G_C <- md_C %>% filter(priorlive != 0) #on a 166 275 observations
+summary(md_G_C)
+#à la main, moyenne dbwt pour les enfants des pères plus âgés contrôles = 3345
 ```
-
