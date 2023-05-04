@@ -34,7 +34,7 @@ file <- "data.csv"
 
 to_keep <- c("dbwt", "mager", "meduc", "fagecomb", "feduc", "frace6", "mrace15",
              "rf_fedrg", "priorlive", "dmar", "cig_rec", "mhisp_r", 
-             "fhispx", "no_infec")
+             "fhispx", "no_infec", "dplural")
 
 df <- load_data(file)%>%
   select(all_of(to_keep))
@@ -83,18 +83,15 @@ df <- df %>%
 df %>% select(cig_rec) %>% distinct()
 df$cig_rec <- ifelse(df$cig_rec == "Y", 1, 0)
 
-#recoding sex
-df$sex_M <-  ifelse(df$sex == "M" , 1, 0)
-df <- df %>% select(!all_of(c("sex")))
 ```
 ```{r}
 #variation selon jumeaux ou single
-df <- df %>% filter(dplural == 1) 
+df <- df %>% filter(dplural != 1) 
 ```
 
 ```{r}
 m <- matchit(rf_fedrg ~ mager + meduc + fagecomb + feduc + frace6 + mrace6 +
-                dmar + cig_rec + mhisp_r + fhispx + no_infec + priorlive,
+                dmar + cig_rec + mhisp_r + fhispx + priorlive + no_infec,
              data = df,
              method = "exact",
              k2k = TRUE,
@@ -134,7 +131,7 @@ summary(md_C)
 ```{r}
 #puis on estime l'ATT
 fit <- lm(dbwt ~ rf_fedrg * (mager + meduc + fagecomb + feduc + frace6 + mrace6 +
-                dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + gestrec3), data = md)
+                dmar + cig_rec + mhisp_r + fhispx + no_infec), data = md)
 
 avg_comparisons(fit, variables = "rf_fedrg", vcov = ~subclass,
                 newdata = subset(md, rf_fedrg == 1))

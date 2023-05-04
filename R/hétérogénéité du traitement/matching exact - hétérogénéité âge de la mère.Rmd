@@ -1,5 +1,5 @@
 ---
-title: "matching exact - hétérogénéité sexe du bébé"
+title: "comparaison hétérogénéité âge du père"
 output: html_notebook
 ---
 
@@ -33,10 +33,10 @@ file <- "data.csv"
 
 
 to_keep <- c("dbwt", "mager", "meduc", "fagecomb", "feduc", "frace6", "mrace15",
-             "rf_fedrg", "priorlive", "dmar", "cig_rec", "mhisp_r", 
-             "fhispx", "no_infec", "sex")
+             "rf_fedrg", "priorlive", "dmar", "cig_rec", "mhisp_r", "dplural", 
+             "fhispx", "no_infec")
 
-dfs <- load_data(file)%>%
+df <- load_data(file)%>%
   select(all_of(to_keep))
 ```
 
@@ -45,7 +45,7 @@ dfs <- load_data(file)%>%
 
 # pour mrace6, les labels sont mal codes, donc :
 # recoding mrace15 into mrace6 (correctly)
-dfs <- dfs %>%
+df <- df %>%
   mutate(mrace6 = case_when(
     between(mrace15, 4, 10) ~ 4,
     between(mrace15, 11, 14) ~ 5,
@@ -55,18 +55,17 @@ dfs <- dfs %>%
   select(!mrace15)
 
 # on recode dmar
-dfs <- dfs %>%
+df <- df %>%
   mutate(dmar = case_when(
     dmar == 1 ~ 1,
     is.na(dmar) ~ 9,
     TRUE ~ 0))
 
 # recoding rf_fedrg as follows :  X, U, N -> 0 & Y -> 1
-dfs$rf_fedrg <- ifelse(dfs$rf_fedrg == "Y", 1, 0)
-
+df$rf_fedrg <- ifelse(df$rf_fedrg == "Y", 1, 0)
 
 #on supprime les valeurs unknown
-dfs <- dfs %>% 
+df <- df %>% 
   filter(fagecomb != 99,
          meduc != 9,
          dbwt != 9999,
@@ -81,19 +80,19 @@ dfs <- dfs %>%
          no_infec != 9)
 
 # recoding cigarette consumption from Y & N to 1 & 0 :
-dfs %>% select(cig_rec) %>% distinct()
-dfs$cig_rec <- ifelse(dfs$cig_rec == "Y", 1, 0)
+df %>% select(cig_rec) %>% distinct()
+df$cig_rec <- ifelse(df$cig_rec == "Y", 1, 0)
 
-#recoding sex
-dfs$sex_M <-  ifelse(dfs$sex == "M" , 1, 0)
-dfs <- dfs %>% select(!all_of(c("sex")))
 ```
-
+```{r}
+#variation selon jumeaux ou single
+df <- df %>% filter(dplural != 1) 
+```
 
 ```{r}
 m <- matchit(rf_fedrg ~ mager + meduc + fagecomb + feduc + frace6 + mrace6 +
-                dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + priorlive,
-             data = dfs,
+                dmar + cig_rec + mhisp_r + fhispx + priorlive + no_infec,
+             data = df,
              method = "exact",
              k2k = TRUE,
              estimand = "ATT") 
@@ -117,7 +116,7 @@ summary(md)
 #on cherche des informations sur les traités
 md_T <- match.data(m, group = "treated")
 summary(md_T)
-#à la main, moyenne dbwt pour les traités = 3150
+#à la main, moyenne dbwt pour les traités = 3325
 
 ```
 
@@ -125,64 +124,65 @@ summary(md_T)
 #on cherche des informations sur les contrôles
 md_C <- match.data(m, group="control")
 summary(md_C)
-#à la main, moyenne dbwt pour les contrôles = 3303
+#à la main, moyenne dbwt pour les contrôles = 3388
 ```
 
 
 ```{r}
 #puis on estime l'ATT
 fit <- lm(dbwt ~ rf_fedrg * (mager + meduc + fagecomb + feduc + frace6 + mrace6 +
-                dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + priorlive), data = md)
+                dmar + cig_rec + mhisp_r + fhispx + no_infec + priorlive), data = md)
 
 avg_comparisons(fit, variables = "rf_fedrg", vcov = ~subclass,
                 newdata = subset(md, rf_fedrg == 1))
 
-# résultat : -91,6
-# résultats en calculant à la main : 3150 - 3303 = -153
+# résultat : -42,7
+# résultats en calculant à la main : 3325 - 3388 = -63
 
 ```
 
 
-On essaye de séparer les pères les filles des garçons
+On essaye de séparer les pères les plus âgés des pères plus jeunes : comparaison du dernier et du premier quantile
 
-On compare les filles :
-
-```{r}
-md_F <- md %>% filter(sex_M == 0) #on a 225 198 observations
-summary(md_F)
-#à la main, moyenne dbwt pour les filles = 3195
-```
+On compare les pères plus jeunes :
 
 ```{r}
-md_F_T <- md_T %>% filter(sex_M == 0) #on a 71 861 observations
-summary(md_F_T)
-#à la main, moyenne dbwt pour les filles des traitées = 3098
+md_Y <- md %>% filter(mager <= 30) #on a 110 586 observations
+summary(md_Y)
+#à la main, moyenne dbwt pour les enfants des pères plus jeunes = 3261
 ```
 
 ```{r}
-md_F_C <- md_C %>% filter(sex_M == 0) #on a 153 337 observations
-summary(md_F_C)
-#à la main, moyenne dbwt pour les jumeaux des mères plus jeunes contrôles = 3241
-```
-
-Et pour les garçons
-
-```{r}
-md_G <- md %>% filter(sex_M == 1) #on a 237 671 observations
-summary(md_G)
-#à la main, moyenne dbwt pour les jumeaux des mères plus âgées = 3310
+md_Y_T <- md_T %>% filter(mager <= 30) #on a 34 704 observations
+summary(md_Y_T)
+#à la main, moyenne dbwt pour les jumeaux des mères plus jeunes traitées = 3304
 ```
 
 ```{r}
-md_G_T <- md_T %>% filter(sex_M == 1) #on a 76 126 observations
-summary(md_G_T)
-#à la main, moyenne dbwt pour les enfants des pères plus âgés traités = 3199
+md_Y_C <- md_C %>% filter(mager <= 30) #on a 2346 observations
+summary(md_Y_C)
+#à la main, moyenne dbwt pour les jumeaux des mères plus jeunes contrôles = 3388
+```
+On a un effet de -84 grammes
+
+Et pour les pères plus âgés 
+
+```{r}
+md_O <- md %>% filter(mager >= 36) #on a 105 441 observations
+summary(md_O)
+#à la main, moyenne dbwt pour les jumeaux des mères plus âgées = 3375
+```
+
+```{r}
+md_O_T <- md_T %>% filter(mager >= 36) #on a 35 063 observations
+summary(md_O_T)
+#à la main, moyenne dbwt pour les enfants des pères plus âgés traités = 3345
 ```
 
 
 ```{r}
-md_G_C <- md_C %>% filter(sex_M == 1) #on a 161 545 observations
-summary(md_G_C)
-#à la main, moyenne dbwt pour les enfants des pères plus âgés contrôles = 3362
+md_O_C <- md_C %>% filter(mager >= 36) #on a 70 378 observations
+summary(md_O_C)
+#à la main, moyenne dbwt pour les enfants des pères plus âgés contrôles = 3390
 ```
-
+Effet calculé : -45 grammes

@@ -29,15 +29,25 @@ load_data <- function(file, path = "data"){
 #loading dataset
 path <- "Data"
 list.files(path = path)
-file <- "data.csv"
-
 
 to_keep <- c("dbwt", "mager", "meduc", "fagecomb", "feduc", "frace6", "mrace15",
-             "rf_fedrg", "rf_artec", "priorlive", "dmar", "cig_rec", "mhisp_r", 
-             "fhispx", "no_infec", "sex", "gestrec3", "dplural")
+             "rf_fedrg", "priorlive", "dmar", "cig_rec", "mhisp_r", 
+             "fhispx", "no_infec")
 
-df <- load_data(file)%>%
+df2018 <- load_data('nat2018us.csv')%>%
   select(all_of(to_keep))
+df2019 <- load_data('nat2019us.csv')%>%
+  select(all_of(to_keep))
+df2020 <- load_data('nat2020us.csv')%>%
+  select(all_of(to_keep))
+df2021 <- load_data('nat2021us.csv')%>%
+  select(all_of(to_keep))
+
+df <- df2021 %>% 
+    dplyr::bind_rows(df2020) %>% 
+    dplyr::bind_rows(df2019) %>% 
+    dplyr::bind_rows(df2018)
+
 ```
 
 ```{r}
@@ -64,9 +74,6 @@ df <- df %>%
 # recoding rf_fedrg as follows :  X, U, N -> 0 & Y -> 1
 df$rf_fedrg <- ifelse(df$rf_fedrg == "Y", 1, 0)
 
-# recoding rf_artec as follows :  X, U, N -> 0 & Y -> 1
-df$rf_artec <- ifelse(df$rf_artec == "Y", 1, 0)
-
 #on supprime les valeurs unknown
 df <- df %>% 
   filter(fagecomb != 99,
@@ -80,22 +87,18 @@ df <- df %>%
          fhispx != 9,
          cig_rec != "U",
          dmar != 9,
-         no_infec != 9,
-         gestrec3 != 3)
+         no_infec != 9)
 
 # recoding cigarette consumption from Y & N to 1 & 0 :
 df %>% select(cig_rec) %>% distinct()
 df$cig_rec <- ifelse(df$cig_rec == "Y", 1, 0)
 
-#recoding sex
-df$sex_M <-  ifelse(df$sex == "M" , 1, 0)
-df <- df %>% select(!all_of(c("sex")))
 ```
 
 
 ```{r}
 m <- matchit(rf_fedrg ~ mager + meduc + fagecomb + feduc + frace6 + mrace6 +
-                dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + gestrec3,
+                dmar + cig_rec + mhisp_r + fhispx + no_infec + priorlive,
              data = df,
              method = "exact",
              k2k = TRUE,
@@ -135,7 +138,7 @@ summary(md_C)
 ```{r}
 #puis on estime l'ATT
 fit <- lm(dbwt ~ rf_fedrg * (mager + meduc + fagecomb + feduc + frace6 + mrace6 +
-                dmar + cig_rec + mhisp_r + fhispx + no_infec + sex_M + gestrec3), data = md)
+                dmar + cig_rec + mhisp_r + fhispx + no_infec + priorlive), data = md)
 
 avg_comparisons(fit, variables = "rf_fedrg", vcov = ~subclass,
                 newdata = subset(md, rf_fedrg == 1))
