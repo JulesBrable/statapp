@@ -1,7 +1,7 @@
 library(tidyverse)
 
-source(here::here("R/functions/statdesc_functions.R"))
-source(here::here("R/functions/sampling_functions.R")
+source(here::here("R/functions/statdesc_functions.R")),
+source(here::here("R/functions/sampling_functions.R"),
   
 
 library(data.table)
@@ -26,8 +26,7 @@ df <- df %>%
     between(mrace15, 4, 10) ~ 4,
     between(mrace15, 11, 14) ~ 5,
     mrace15 == 15 ~ 6,
-    TRUE ~ as.numeric(mrace15)
-  )) %>% 
+    TRUE ~ as.numeric(mrace15))) %>% 
   select(!mrace15)
 
 # recoding rf_fedrg as follows :  X, U, N -> 0 & Y -> 1
