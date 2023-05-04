@@ -146,7 +146,7 @@ md_C <- match.data(m, group="control")
 
 mean(md_T$gestrec3) - mean(md_C$gestrec3) # On obtient comme valeur 0,0720
 
-# Effet calculé pour gestrec3 
+# Effet calculé pour gestrec3 : 
 md <- match.data(m)
 
 myreg_gestrec3 = glm(gestrec3 ~ rf_fedrg + mager + meduc + fagecomb + feduc + frace6 + mrace6 +
