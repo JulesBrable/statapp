@@ -154,8 +154,6 @@ myreg_gestrec3 = glm(gestrec3 ~ rf_fedrg + mager + meduc + fagecomb + feduc + fr
 summary(myreg_gestrec3 )
 #Dans le summary my_reg on obtient comme coeff associé à rf_fedrg : 0,669
 
-#avg_comparisons(myreg, variables = "rf_fedrg", vcov = ~subclass,
-#newdata = md)
 
 
 
